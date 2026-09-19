@@ -57,45 +57,61 @@ para montar o cabeçalho do Numerário e a identidade visual do app (logo,
 ## `Usuario`
 
 Modelado no domínio (`id`, `nome`, `email`, `cargo?`, `criadoEm`) mas **ainda
-não usado em nenhuma tela** — a Fase 1 não tem autenticação nem gestão de
-usuários funcional. A operação é de uma pessoa só; múltiplos usuários é uma
+não alimentado por nenhuma tela** — a Fase 1 não tem autenticação funcional.
+Existe uma tela de login (`/login`) e um card de usuário no rodapé do menu
+lateral, mas ambos são **casca de UI**: o usuário exibido é a constante
+`USUARIO_LOGADO` em `src/components/layout/Sidebar.tsx` e o "logout" apenas
+navega para `/login`. A operação é de uma pessoa só; múltiplos usuários é uma
 necessidade futura, não confirmada.
 
 ## `ProcessoImportacao` (o PI — entidade central)
 
-| Campo | Tipo | Obrigatório | Seção do drawer | Observação |
+O drawer de detalhe do PI tem seis abas: **Processo** (com as seções
+colapsáveis *Informações primárias*, *Transporte*, *Frete internacional* e
+*Produtos*), **Desembaraço**, **Financeiro**, **Digitação de DI**
+(placeholder vazio), **Anexos** e **Comentários**. A coluna abaixo indica
+onde cada campo aparece.
+
+| Campo | Tipo | Obrigatório | Aba / seção | Observação |
 |---|---|---|---|---|
 | `id` | string (uuid) | sim | — | |
-| `numero` | string | sim | — | `PI-{sequência}`, único |
-| `clienteId` | string (uuid → Empresa) | sim | — | FK |
-| `status` | `PiStatus` | sim | header | default `aberto` |
-| `modal` | `Modal` | sim | Transporte | |
-| `fornecedoresCotadosIds` | string[] (uuid → Empresa) | não | Frete internacional | fornecedores convidados a cotar — N:N |
-| `fornecedorFreteId` | string (uuid → Empresa) | não | Frete internacional | qual cotação foi aceita, subconjunto de `fornecedoresCotadosIds` |
-| `exportadorId` | string (uuid → Empresa) | não | Informações primárias | FK — ver nota abaixo |
-| `referenciaCliente` | string | não | Informações primárias | |
-| `licencaImportacao` | boolean | não | Transporte | rotulado "LPCO" na UI |
-| `tipoCarga` | `TipoCarga` | não | Transporte | só quando `modal === 'maritimo'` |
-| `navio` | string | não | Transporte | só quando `modal === 'maritimo'` |
-| `origem`, `destino` | string | não | Transporte | |
-| `previsaoEmbarque`, `previsaoChegada` | string (data) | não | Transporte | |
-| `hblHawb` | string | não | Transporte | |
-| `conhecimentoEmbarque` | string | não | Transporte | "CE Mercante", só maritimo na prática |
-| `dataLiberacaoMapa` | string (data) | não | Transporte | |
-| `dataChegada` | string (data) | não | Transporte | |
-| `dataPresencaCarga` | string (data) | não | Transporte | |
-| `numerario` | `Numerario` \| undefined | não | Financeiro | ver seção própria abaixo — 1:1 opcional |
-| `numerarioEnviadoEm` | string (data) | não | Financeiro | "Data de emissão" |
-| `numerarioPagoEm` | string (data) | não | Financeiro | "Data de pagamento" |
+| `numero` | string | sim | cabeçalho | `PI-{sequência}`, único |
+| `clienteId` | string (uuid → Empresa) | sim | Processo › Informações primárias | FK — somente leitura no drawer, definido ao criar o PI |
+| `status` | `PiStatus` | sim | cabeçalho | default `aberto` |
+| `modal` | `Modal` | sim | Processo › Transporte | |
+| `fornecedoresCotadosIds` | string[] (uuid → Empresa) | não | Processo › Frete internacional | fornecedores convidados a cotar — N:N |
+| `fornecedorFreteId` | string (uuid → Empresa) | não | Processo › Frete internacional | qual cotação foi aceita, subconjunto de `fornecedoresCotadosIds` |
+| `exportadorId` | string (uuid → Empresa) | não | Processo › Informações primárias | FK — ver nota abaixo |
+| `referenciaCliente` | string | não | Processo › Informações primárias | |
+| `licencaImportacao` | boolean | não | Processo › Transporte | rotulado "LPCO" na UI |
+| `tipoCarga` | `TipoCarga` | não | Processo › Transporte | só quando `modal === 'maritimo'` |
+| `navio` | string | não | Processo › Transporte | só quando `modal === 'maritimo'` |
+| `origem`, `destino` | string | não | Processo › Transporte | |
+| `previsaoEmbarque`, `previsaoChegada` | string (data) | não | Processo › Transporte | |
+| `hblHawb` | string | não | Processo › Transporte | |
+| `conhecimentoEmbarque` | string | não | Processo › Transporte | "CE Mercante", só `maritimo` na prática |
+| `dataLiberacaoMapa` | string (data) | não | Processo › Transporte | |
+| `dataChegada` | string (data) | não | Processo › Transporte | |
+| `dataPresencaCarga` | string (data) | não | Processo › Transporte | |
+| `produtos` | `Produto[]` | sim (pode ser vazio) | Processo › Produtos | 1:N — ver seção própria abaixo |
 | `numeroDi` | string | não | Desembaraço | |
 | `dataCi` | string (data) | não | Desembaraço | significado não 100% confirmado, ver domínio de negócio |
 | `dataSiscargo` | string (data) | não | Desembaraço | idem |
 | `dataIcms` | string (data) | não | Desembaraço | "Pagamento ICMS" |
 | `dataEncerramento` | string (data) | não | Desembaraço | |
-| `produtos` | string[] | sim (pode ser vazio) | Processo | lista simples de nomes de produto, sem entidade própria |
+| `numerario` | `Numerario` \| undefined | não | Financeiro | ver seção própria abaixo — 1:1 opcional |
+| `numerarioEnviadoEm` | string (data) | não | Financeiro | "Data de emissão" |
+| `numerarioPagoEm` | string (data) | não | Financeiro | "Data de pagamento" |
 | `criadoEm`, `atualizadoEm` | string (data) | sim | — | `atualizadoEm` é atualizado automaticamente a cada `atualizarProcesso()` |
-| `comentarios` | `Comentario[]` | sim (pode ser vazio) | aba Comentários | 1:N |
-| `anexos` | `Anexo[]` | sim (pode ser vazio) | aba Anexos | 1:N |
+| `comentarios` | `Comentario[]` | sim (pode ser vazio) | Comentários | 1:N |
+| `anexos` | `Anexo[]` | sim (pode ser vazio) | Anexos | 1:N |
+
+Quase todos os campos acima também estão disponíveis como **colunas opcionais
+da tabela de PIs** — ver `COLUNAS_DISPONIVEIS` em
+`src/components/processos/colunas.ts`. Algumas colunas são derivadas e não
+existem como campo no tipo: `cnpj` (do cliente), `numerarioStatus`/
+`numerarioTotal`/`numerarioInvoice` (do numerário), `produtos` (nomes
+concatenados) e `comentarios`/`anexos` (contagens).
 
 > **`exportadorId` — resolvido 2026-08-15**: é FK para `Empresa` (não texto
 > livre). O seletor no drawer do PI (`ComboBoxTexto`) sugere `Empresa`s cujo
@@ -104,6 +120,23 @@ necessidade futura, não confirmada.
 > novo registro de `Empresa` (`tiposRelacionamento: ['exportador']`,
 > `estrangeira: true`) e liga o PI a ele — isso preserva a ergonomia de não
 > exigir cadastro prévio, sem abrir mão de ser uma FK de verdade.
+
+## `Produto` (embutido em `ProcessoImportacao.produtos`)
+
+Item de mercadoria do PI. Era uma lista de strings até 2026-09-18; virou
+entidade com identidade própria para comportar quantidade e edição in-place.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | string (uuid) | gerado no front (`crypto.randomUUID()`) — no banco vira `gen_random_uuid()` |
+| `nome` | string | texto livre, pode estar vazio enquanto a linha acabou de ser criada |
+| `quantidade` | number | sem unidade de medida associada (kg, peças, m³) — **decisão em aberto** |
+
+A UI segue o mesmo padrão dos tributos do numerário: o botão "Adicionar"
+insere uma linha em branco (`{ nome: '', quantidade: 1 }`) que é editada
+in-place, e o botão de remover exclui de verdade (sem soft delete). A prévia
+do numerário (`NumerarioPreview.tsx`) e a coluna "Produtos" da tabela
+concatenam apenas os `nome`s.
 
 ## `Numerario` (embutido em `ProcessoImportacao.numerario`, opcional)
 
@@ -120,7 +153,7 @@ objeto, mas no banco relacional vira tabela própria com FK única para
 | `status` | `NumerarioStatus` | ver fluxo em [01-dominio-negocio.md](01-dominio-negocio.md) |
 
 Antes tinha também `produto` e `exportador`, removidos por duplicarem campos
-já existentes no `ProcessoImportacao` (`produtos`, `exportador`) — a prévia
+já existentes no `ProcessoImportacao` (`produtos`, `exportadorId`) — a prévia
 do numerário (`NumerarioPreview.tsx`) deriva esses dois valores do processo
 pai, não os armazena de novo.
 
@@ -145,7 +178,7 @@ Taxas, IPI, PIS, COFINS, Taxa Siscomex, ICMS*.
 | `autor` | string | hoje sempre `"Fiorini"` (não há multi-usuário ainda) |
 | `texto` | string | |
 | `criadoEm` | string (data) | |
-| `visivelNoPortal` | boolean | **default `false`** — usuário decide explicitamente exibir no portal |
+| `visivelNoPortal` | boolean | **default `false`** — usuário decide explicitamente exibir no portal; a UI rotula os dois estados como "Visível no portal" / "Visível só para mim" |
 | `estagio` | `PiStatus` \| undefined | status do PI no momento do comentário, para dar contexto na timeline |
 | `ativo` | boolean | soft delete — "inativar" um comentário some da timeline mas nunca remove o registro (resolvido 2026-08-15) |
 
@@ -154,8 +187,12 @@ Taxas, IPI, PIS, COFINS, Taxa Siscomex, ICMS*.
 | Campo | Tipo | Observação |
 |---|---|---|
 | `id` | string (uuid) | |
-| `nomeArquivo` | string | editável depois do upload |
+| `nomeArquivo` | string | editável depois do upload (ícone de lápis na linha) |
 | `tamanhoBytes` | number | |
-| `enviadoEm` | string (data) | |
-| `visivelNoPortal` | boolean | **default `false`**, igual comentário |
-| `url` | string \| undefined | hoje é um `URL.createObjectURL()` local (não sobrevive a reload); no back-end vira o path/URL assinada do Supabase Storage |
+| `enviadoEm` | string (data) | exibido na linha do anexo |
+| `visivelNoPortal` | boolean | **default `false`**, igual comentário, mesmos rótulos |
+| `url` | string \| undefined | hoje é um `URL.createObjectURL()` local (não sobrevive a reload); no back-end vira o path/URL assinada do Supabase Storage. Quando presente, o nome do arquivo vira link de abrir e aparece o botão de download; a miniatura quadrada da linha mostra a imagem quando a extensão é de imagem |
+
+Diferente de comentários, **anexo é excluído de verdade** (`removerAnexo`,
+sem soft delete), atrás de um diálogo de confirmação. Ao ligar o Supabase
+Storage, essa exclusão precisa remover também o objeto no bucket.
