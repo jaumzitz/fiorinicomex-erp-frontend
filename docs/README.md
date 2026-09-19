@@ -49,7 +49,7 @@ comandos, convenções e as armadilhas conhecidas do código.
 - Telas prontas: Boas-vindas, Processos de Importação (tabela/cards/kanban +
   drawer do PI), Cadastro de Empresas, BI, Administração e Login (casca de
   UI). Falta o Portal do Cliente, que é uma aplicação à parte.
-- Repositório: `https://github.com/jaumzitz/fiorinicomex-erp-frontend-claude`,
+- Repositório: `https://github.com/jaumzitz/fiorinicomex-erp-frontend`,
   branch de trabalho `develop`.
 
 ## Rodando o projeto
