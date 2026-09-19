@@ -118,6 +118,12 @@ export interface ItemTributo {
   valor: number
 }
 
+export interface Produto {
+  id: string
+  nome: string
+  quantidade: number
+}
+
 export interface TributoCatalogo {
   nome: string
   ativo: boolean
@@ -192,7 +198,7 @@ export interface ProcessoImportacao {
   dataSiscargo?: string
   dataIcms?: string
   dataEncerramento?: string
-  produtos: string[]
+  produtos: Produto[]
   criadoEm: string
   atualizadoEm: string
   comentarios: Comentario[]

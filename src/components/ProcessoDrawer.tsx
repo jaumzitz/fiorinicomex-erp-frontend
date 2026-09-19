@@ -4,10 +4,9 @@ import {
   Plus,
   Check,
   Container,
-  Eye,
+  Pencil,
   Download,
   Boxes,
-  Landmark,
   Route,
   Wallet,
   X,
@@ -55,6 +54,7 @@ import { NumerarioPreview } from '@/components/NumerarioPreview'
 import { getCliente } from '@/lib/domain-queries'
 import { hoje, formatarData } from '@/lib/date'
 import { cn } from '@/lib/utils'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { TRIBUTOS_CATALOGO_PADRAO } from '@/data/mock-data'
 import { useProcessos } from '@/store/ProcessosContext'
 import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
@@ -75,14 +75,20 @@ import {
   type TipoCarga,
 } from '@/types/domain'
 
+function ehImagem(nomeArquivo: string) {
+  return /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(nomeArquivo)
+}
+
 function AnexoRow({
   anexo,
   onRename,
   onToggleVisibilidade,
+  onExcluir,
 }: {
   anexo: Anexo
   onRename: (nome: string) => void
   onToggleVisibilidade: (visivel: boolean) => void
+  onExcluir: () => void
 }) {
   const [editando, setEditando] = useState(false)
   const [nome, setNome] = useState(anexo.nomeArquivo)
@@ -95,45 +101,58 @@ function AnexoRow({
   }
 
   return (
-    <li className="flex items-center gap-2 text-sm">
-      {editando ? (
-        <Input
-          autoFocus
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          onBlur={confirmar}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') confirmar()
-            if (e.key === 'Escape') {
-              setNome(anexo.nomeArquivo)
-              setEditando(false)
-            }
-          }}
-          className="h-7 flex-1"
-        />
-      ) : (
-        <button
-          type="button"
-          className="flex-1 truncate text-left hover:underline"
-          onClick={() => setEditando(true)}
-        >
-          {anexo.nomeArquivo}
-        </button>
-      )}
-      <span className="text-muted-foreground shrink-0 text-xs">
-        {(anexo.tamanhoBytes / 1024).toFixed(0)} KB
-      </span>
-      {anexo.url && (
-        <div className="flex shrink-0 items-center gap-1.5">
+    <li className="flex items-center gap-3 rounded-md border p-2 text-sm">
+      <div className="bg-muted flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md border">
+        {anexo.url && ehImagem(anexo.nomeArquivo) ? (
+          <img src={anexo.url} alt="" className="size-full object-cover" />
+        ) : (
+          <FileText className="text-muted-foreground size-4" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        {editando ? (
+          <Input
+            autoFocus
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            onBlur={confirmar}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') confirmar()
+              if (e.key === 'Escape') {
+                setNome(anexo.nomeArquivo)
+                setEditando(false)
+              }
+            }}
+            className="h-7"
+          />
+        ) : anexo.url ? (
           <a
             href={anexo.url}
             target="_blank"
             rel="noreferrer"
-            title="Visualizar"
-            className="text-muted-foreground hover:text-foreground"
+            className="block w-full truncate hover:underline"
           >
-            <Eye className="size-4" />
+            {anexo.nomeArquivo}
           </a>
+        ) : (
+          <span className="block w-full truncate">{anexo.nomeArquivo}</span>
+        )}
+        <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+          <span>{(anexo.tamanhoBytes / 1024).toFixed(0)} KB</span>
+          <span>·</span>
+          <span>{formatarData(anexo.enviadoEm)}</span>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          title="Editar título"
+          onClick={() => setEditando(true)}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <Pencil className="size-4" />
+        </button>
+        {anexo.url && (
           <a
             href={anexo.url}
             download={anexo.nomeArquivo}
@@ -142,8 +161,16 @@ function AnexoRow({
           >
             <Download className="size-4" />
           </a>
-        </div>
-      )}
+        )}
+        <button
+          type="button"
+          title="Excluir anexo"
+          onClick={onExcluir}
+          className="text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
       <button
         type="button"
         className="shrink-0"
@@ -153,7 +180,7 @@ function AnexoRow({
           variant={anexo.visivelNoPortal ? 'default' : 'outline'}
           className="cursor-pointer text-xs"
         >
-          {anexo.visivelNoPortal ? 'Visível no portal' : 'Oculto'}
+          {anexo.visivelNoPortal ? 'Visível no portal' : 'Visível só para mim'}
         </Badge>
       </button>
     </li>
@@ -323,11 +350,11 @@ const SECOES_PADRAO: Record<string, boolean> = {
   transporte: true,
   frete: false,
   produtos: false,
-  desembaraco: false,
 }
 
 const ABAS_DRAWER = [
   { id: 'processo', label: 'Processo' },
+  { id: 'desembaraco', label: 'Desembaraço' },
   { id: 'financeiro', label: 'Financeiro' },
   { id: 'di', label: 'Digitação de DI' },
   { id: 'anexos', label: 'Anexos' },
@@ -335,6 +362,15 @@ const ABAS_DRAWER = [
 ] as const
 
 type AbaDrawer = (typeof ABAS_DRAWER)[number]['id']
+
+const CHAVE_LARGURA_DRAWER = 'fiorini-comex:largura-drawer-processo'
+const LARGURA_DRAWER_PADRAO = 720
+const LARGURA_DRAWER_MINIMA = 420
+
+function larguraDrawerInicial(): number {
+  const salva = Number(localStorage.getItem(CHAVE_LARGURA_DRAWER))
+  return salva >= LARGURA_DRAWER_MINIMA ? salva : LARGURA_DRAWER_PADRAO
+}
 
 export function ProcessoDrawer({
   processo,
@@ -353,9 +389,11 @@ export function ProcessoDrawer({
     inativarComentario,
     adicionarAnexos,
     atualizarAnexo,
+    removerAnexo,
     alternarFornecedorCotado,
     definirFornecedorAceito,
     adicionarProduto,
+    atualizarProduto,
     removerProduto,
   } = useProcessos()
   const { empresas, criarEmpresa } = useEmpresasCadastradas()
@@ -363,13 +401,67 @@ export function ProcessoDrawer({
   const [numerarioAberto, setNumerarioAberto] = useState(false)
   const [confirmarDesfazerAberto, setConfirmarDesfazerAberto] = useState(false)
   const [confirmarExcluirAberto, setConfirmarExcluirAberto] = useState(false)
+  const [anexoParaExcluir, setAnexoParaExcluir] = useState<Anexo | null>(null)
   const [novoComentario, setNovoComentario] = useState('')
   const [comentarioVisivel, setComentarioVisivel] = useState(false)
-  const [novoProduto, setNovoProduto] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [secoesAbertas, setSecoesAbertas] = useState<Record<string, boolean>>(SECOES_PADRAO)
   const [abaAtiva, setAbaAtiva] = useState<AbaDrawer>('processo')
+
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const [larguraDrawer, setLarguraDrawer] = useState(larguraDrawerInicial)
+  const [redimensionando, setRedimensionando] = useState(false)
+  const redimensionandoRef = useRef(false)
+
+  useEffect(() => {
+    localStorage.setItem(CHAVE_LARGURA_DRAWER, String(Math.round(larguraDrawer)))
+  }, [larguraDrawer])
+
+  useEffect(() => {
+    if (!redimensionando) return
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [redimensionando])
+
+  function iniciarRedimensionamento(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault()
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // pointer pode não estar "ativo" (ex.: eventos sintéticos) — o arraste
+      // ainda funciona sem captura, só não sobrevive se o ponteiro sair do puxador
+    }
+    redimensionandoRef.current = true
+    setRedimensionando(true)
+  }
+
+  function moverRedimensionamento(e: React.PointerEvent<HTMLDivElement>) {
+    if (!redimensionandoRef.current) return
+    const largura = window.innerWidth - e.clientX
+    const maxima = window.innerWidth * 0.9
+    setLarguraDrawer(Math.min(Math.max(largura, LARGURA_DRAWER_MINIMA), maxima))
+  }
+
+  function pararRedimensionamento(e: React.PointerEvent<HTMLDivElement>) {
+    redimensionandoRef.current = false
+    setRedimensionando(false)
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      // idem: nada a liberar se a captura não foi estabelecida
+    }
+  }
+
+  function aoRolarAbas(e: React.WheelEvent<HTMLDivElement>) {
+    const el = e.currentTarget
+    if (el.scrollWidth <= el.clientWidth) return
+    el.scrollLeft += e.deltaY
+  }
 
   useEffect(() => {
     setSecoesAbertas(SECOES_PADRAO)
@@ -395,12 +487,13 @@ export function ProcessoDrawer({
 
   useEffect(() => {
     if (open && processo) {
-      document.title = `${processo.numero} | ERP Fiorini Comex`
+      const clienteAtual = getCliente(processo.clienteId)
+      document.title = `${processo.numero} | ${clienteAtual?.nomeFantasia ?? 'ERP Fiorini Comex'}`
     }
     return () => {
       document.title = 'ERP Fiorini Comex'
     }
-  }, [open, processo?.numero])
+  }, [open, processo?.numero, processo?.clienteId])
 
   if (!processo) return null
 
@@ -523,18 +616,50 @@ export function ProcessoDrawer({
     e.target.value = ''
   }
 
-  function adicionarProdutoAtual() {
-    const valor = novoProduto.trim()
-    if (!valor) return
-    adicionarProduto(processo!.id, valor)
-    setNovoProduto('')
-  }
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-xl">
+      <SheetContent
+        className="w-full gap-0 overflow-y-auto sm:max-w-none"
+        style={isDesktop ? { width: larguraDrawer, maxWidth: '95vw' } : undefined}
+        onEscapeKeyDown={(e) => {
+          const alvo = e.target
+          if (alvo instanceof HTMLInputElement || alvo instanceof HTMLTextAreaElement) {
+            e.preventDefault()
+          }
+        }}
+      >
+        {isDesktop && (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Redimensionar painel"
+            title="Arraste para redimensionar"
+            onPointerDown={iniciarRedimensionamento}
+            onPointerMove={moverRedimensionamento}
+            onPointerUp={pararRedimensionamento}
+            onPointerCancel={pararRedimensionamento}
+            className="group absolute inset-y-0 left-0 z-30 flex w-3 -translate-x-1/2 cursor-col-resize touch-none justify-center select-none"
+          >
+            <div
+              className={cn(
+                'group-hover:bg-border h-full w-px',
+                redimensionando && 'bg-border',
+              )}
+            />
+          </div>
+        )}
         <div className="bg-background sticky top-0 z-10 flex flex-col gap-0">
           <SheetHeader>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="-ml-1 size-7 shrink-0"
+              title="Fechar"
+              onClick={() => onOpenChange(false)}
+            >
+              <X className="size-4" />
+            </Button>
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-col gap-0.5">
                 <SheetTitle className="text-lg">{processo.numero}</SheetTitle>
@@ -581,14 +706,17 @@ export function ProcessoDrawer({
             </div>
           </SheetHeader>
 
-          <div className="flex items-center gap-1 border-b px-5">
+          <div
+            className="scrollbar-hide flex items-center gap-1 overflow-x-auto border-b px-5"
+            onWheel={aoRolarAbas}
+          >
             {ABAS_DRAWER.map((aba) => (
               <button
                 key={aba.id}
                 type="button"
                 onClick={() => setAbaAtiva(aba.id)}
                 className={cn(
-                  '-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors',
+                  '-mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors',
                   abaAtiva === aba.id
                     ? 'border-foreground text-foreground'
                     : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -672,6 +800,35 @@ export function ProcessoDrawer({
                 }}
               >
                 Excluir numerário
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={anexoParaExcluir !== null}
+          onOpenChange={(aberto) => !aberto && setAnexoParaExcluir(null)}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Excluir anexo?</DialogTitle>
+              <DialogDescription>
+                O arquivo "{anexoParaExcluir?.nomeArquivo}" será removido deste processo.
+                Essa ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAnexoParaExcluir(null)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (anexoParaExcluir) removerAnexo(processo.id, anexoParaExcluir.id)
+                  setAnexoParaExcluir(null)
+                }}
+              >
+                Excluir anexo
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -927,57 +1084,63 @@ export function ProcessoDrawer({
           aberto={secoesAbertas.produtos}
           onToggle={() => alternarSecao('produtos')}
         >
-          {processo.produtos.length > 0 && (
-            <ul className="flex flex-wrap gap-2">
-              {processo.produtos.map((produto) => (
-                <li key={produto}>
-                  <Badge variant="outline" className="gap-1.5 pr-1.5">
-                    {produto}
-                    <button
+          <div className="flex flex-col gap-3">
+            {processo.produtos.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Nenhum produto cadastrado.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {processo.produtos.map((produto) => (
+                  <li key={produto.id} className="flex items-center gap-2">
+                    <Input
+                      placeholder="Nome do produto"
+                      value={produto.nome}
+                      onChange={(e) =>
+                        atualizarProduto(processo.id, produto.id, { nome: e.target.value })
+                      }
+                      className="h-8 flex-1"
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Qtd."
+                      value={produto.quantidade}
+                      onChange={(e) =>
+                        atualizarProduto(processo.id, produto.id, {
+                          quantidade: Number(e.target.value) || 0,
+                        })
+                      }
+                      className="h-8 w-24 shrink-0"
+                    />
+                    <Button
                       type="button"
-                      onClick={() => removerProduto(processo.id, produto)}
-                      className="text-muted-foreground hover:text-destructive"
+                      size="icon"
+                      variant="ghost"
+                      className="size-8 shrink-0"
+                      onClick={() => removerProduto(processo.id, produto.id)}
                     >
-                      <X className="size-3" />
-                    </button>
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Adicionar produto..."
-              value={novoProduto}
-              onChange={(e) => setNovoProduto(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  adicionarProdutoAtual()
-                }
-              }}
-              className="h-8"
-            />
+                      <X className="size-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Button
               size="sm"
               variant="outline"
-              onClick={adicionarProdutoAtual}
-              disabled={!novoProduto.trim()}
+              className="w-fit"
+              onClick={() => adicionarProduto(processo.id, { nome: '', quantidade: 1 })}
             >
               <Plus className="size-4" />
+              Adicionar
             </Button>
           </div>
         </SecaoDrawer>
+        <div className="h-10" />
+        </>
+        )}
 
-        <Separator />
-
-        <SecaoDrawer
-          icon={Landmark}
-          titulo="Desembaraço"
-          aberto={secoesAbertas.desembaraco}
-          onToggle={() => alternarSecao('desembaraco')}
-        >
-          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+        {abaAtiva === 'desembaraco' && (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4 px-5 py-5">
             <div className="col-span-2">
               <EditableField
                 label="Nº DI"
@@ -1010,9 +1173,6 @@ export function ProcessoDrawer({
               onChange={(v) => patch('dataEncerramento', v)}
             />
           </div>
-        </SecaoDrawer>
-        <div className="h-10" />
-        </>
         )}
 
         {abaAtiva === 'financeiro' && !processo.numerario && (
@@ -1231,6 +1391,7 @@ export function ProcessoDrawer({
                     onToggleVisibilidade={(visivel) =>
                       atualizarAnexo(processo.id, a.id, { visivelNoPortal: visivel })
                     }
+                    onExcluir={() => setAnexoParaExcluir(a)}
                   />
                 ))}
               </ul>
@@ -1264,7 +1425,7 @@ export function ProcessoDrawer({
                             variant={c.visivelNoPortal ? 'default' : 'outline'}
                             className="cursor-pointer text-xs"
                           >
-                            {c.visivelNoPortal ? 'Visível no portal' : 'Oculto'}
+                            {c.visivelNoPortal ? 'Visível no portal' : 'Visível só para mim'}
                           </Badge>
                         </button>
                         <span className="text-muted-foreground text-xs">

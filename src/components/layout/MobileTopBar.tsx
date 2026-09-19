@@ -3,7 +3,7 @@ import { Menu } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
-import { SidebarBrand, SidebarNav } from '@/components/layout/Sidebar'
+import { SidebarBrand, SidebarNav, SidebarUserCard } from '@/components/layout/Sidebar'
 import { useEmpresaConfig } from '@/store/EmpresaConfigContext'
 
 export function MobileTopBar() {
@@ -22,6 +22,7 @@ export function MobileTopBar() {
           <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
           <SidebarBrand />
           <SidebarNav onNavigate={() => setAberto(false)} />
+          <SidebarUserCard />
         </SheetContent>
       </Sheet>
     </header>

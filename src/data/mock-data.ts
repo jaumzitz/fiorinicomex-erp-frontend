@@ -195,7 +195,7 @@ export const processos: ProcessoImportacao[] = [
     fornecedoresCotadosIds: ['emp-6', 'emp-8', 'emp-9'],
     exportadorId: 'emp-10',
     referenciaCliente: 'OC-4471',
-    produtos: ['Louças e revestimentos cerâmicos'],
+    produtos: [{ id: 'prod-1', nome: 'Louças e revestimentos cerâmicos', quantidade: 1200 }],
     criadoEm: '2026-07-10',
     atualizadoEm: '2026-07-14',
     comentarios: [
@@ -217,7 +217,7 @@ export const processos: ProcessoImportacao[] = [
     previsaoChegada: '2026-07-23',
     exportadorId: 'emp-11',
     referenciaCliente: 'PC-2026-018',
-    produtos: ['Peças fundidas de aço'],
+    produtos: [{ id: 'prod-2', nome: 'Peças fundidas de aço', quantidade: 350 }],
     criadoEm: '2026-07-05',
     atualizadoEm: '2026-07-13',
     comentarios: [],
@@ -260,7 +260,7 @@ export const processos: ProcessoImportacao[] = [
     numerarioEnviadoEm: '2026-07-14',
     exportadorId: 'emp-12',
     referenciaCliente: 'IMP-77/2026',
-    produtos: ['BROMOPRIDA'],
+    produtos: [{ id: 'prod-3', nome: 'BROMOPRIDA', quantidade: 5000 }],
     criadoEm: '2026-06-20',
     atualizadoEm: '2026-07-14',
     comentarios: [
@@ -286,7 +286,10 @@ export const processos: ProcessoImportacao[] = [
     conhecimentoEmbarque: 'CE-2026-004402',
     exportadorId: 'emp-10',
     referenciaCliente: 'OC-4402',
-    produtos: ['Porcelanato', 'Argamassa'],
+    produtos: [
+      { id: 'prod-4', nome: 'Porcelanato', quantidade: 800 },
+      { id: 'prod-5', nome: 'Argamassa', quantidade: 200 },
+    ],
     criadoEm: '2026-06-01',
     atualizadoEm: '2026-07-10',
     comentarios: [
@@ -330,7 +333,7 @@ export const processos: ProcessoImportacao[] = [
     numerarioPagoEm: '2026-07-09',
     exportadorId: 'emp-13',
     referenciaCliente: 'PED-3390',
-    produtos: ['Tecido sintético em rolos'],
+    produtos: [{ id: 'prod-6', nome: 'Tecido sintético em rolos', quantidade: 60 }],
     criadoEm: '2026-06-15',
     atualizadoEm: '2026-07-12',
     comentarios: [
@@ -357,7 +360,7 @@ export const processos: ProcessoImportacao[] = [
     numerarioPagoEm: '2026-07-02',
     numeroDi: 'DI-26/0998821-3',
     dataIcms: '2026-07-03',
-    produtos: ['Fertilizante NPK'],
+    produtos: [{ id: 'prod-7', nome: 'Fertilizante NPK', quantidade: 20000 }],
     criadoEm: '2026-06-01',
     atualizadoEm: '2026-07-11',
     comentarios: [],
@@ -374,7 +377,7 @@ export const processos: ProcessoImportacao[] = [
     dataChegada: '2026-06-20',
     numerarioPagoEm: '2026-06-21',
     dataEncerramento: '2026-07-01',
-    produtos: ['Rolamentos industriais'],
+    produtos: [{ id: 'prod-8', nome: 'Rolamentos industriais', quantidade: 1500 }],
     criadoEm: '2026-05-28',
     atualizadoEm: '2026-07-01',
     comentarios: [
