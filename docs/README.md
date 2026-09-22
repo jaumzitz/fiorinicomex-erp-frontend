@@ -1,4 +1,9 @@
-# Documentação — Fiorini Comex ERP
+# Documentação — Netuno ERP (Fiorini Comex)
+
+**Netuno** é o codinome/nome provisório do software; **Fiorini Comex** é a
+empresa cliente que vai usá-lo. O nome "Netuno" aparece hoje só na tela de
+login — o resto da UI ainda usa a marca da Fiorini, que vem de
+`EmpresaConfig`.
 
 Este diretório documenta o estado atual do sistema para orientar quem (pessoa ou
 agente) for trabalhar no back-end, no banco de dados, ou em novas telas do
@@ -21,12 +26,18 @@ Leia nesta ordem se for a primeira vez no projeto:
 4. **[04-schema-banco.md](04-schema-banco.md)** — proposta de schema relacional
    (Supabase/Postgres) derivada do modelo de domínio, com diagrama ER.
 
+Se você é um agente de IA, comece por [`../CLAUDE.md`](../CLAUDE.md): resume
+comandos, convenções e as armadilhas conhecidas do código.
+
 ## Estado do projeto (resumo rápido)
 
-- **Fase atual**: front-end completo (React + Vite + TypeScript + Tailwind v4),
-  rodando inteiramente sobre **dados mockados em memória** (`src/data/mock-data.ts`
-  + React Context). Não há back-end, banco de dados real, nem autenticação
-  ainda — tudo isso é o próximo passo.
+*Atualizado em 2026-09-18.*
+
+- **Fase atual**: front-end considerado **pronto por ora** (React 19 + Vite +
+  TypeScript + Tailwind v4), rodando inteiramente sobre **dados mockados em
+  memória** (`src/data/mock-data.ts` + React Context). Não há back-end, banco
+  de dados real, nem autenticação — tudo isso é o próximo passo. Um `F5`
+  descarta qualquer alteração feita na sessão.
 - **Próximo passo** (o motivo desta pasta existir): modelar e provisionar o
   banco de dados relacional no Supabase, depois substituir os Context
   providers mockados por chamadas reais à API/Supabase client, mantendo os
@@ -34,8 +45,24 @@ Leia nesta ordem se for a primeira vez no projeto:
   banco) para minimizar o retrabalho de UI.
 - Existe um rascunho de migração SQL em `supabase/migrations/`, mantido em
   sincronia com o modelo de domínio atual — ver [04-schema-banco.md](04-schema-banco.md).
-- Repositório: `https://github.com/jaumzitz/fiorinicomex-erp-frontend-claude`,
+  Nenhum projeto Supabase foi provisionado ainda.
+- Telas prontas: Boas-vindas, Processos de Importação (tabela/cards/kanban +
+  drawer do PI), Cadastro de Empresas, BI, Administração e Login (casca de
+  UI). Falta o Portal do Cliente, que é uma aplicação à parte.
+- Repositório: `https://github.com/jaumzitz/fiorinicomex-erp-frontend`,
   branch de trabalho `develop`.
+
+## Rodando o projeto
+
+```bash
+npm install
+npm run dev     # Vite em http://localhost:5173
+npm run build   # tsc -b && vite build
+npm run lint    # oxlint
+```
+
+Não há framework de testes configurado — a verificação hoje é `tsc` + `oxlint`
++ abrir a tela no navegador.
 
 ## Convenções úteis para quem for mexer no back-end
 

@@ -206,7 +206,10 @@ create table processo_fornecedores_cotados (
 create table processo_produtos (
   id uuid primary key default gen_random_uuid(),
   processo_id uuid not null references processos(id) on delete cascade,
-  produto text not null
+  nome text not null,
+  -- Quantidade numérica sem unidade de medida associada ainda (kg, peças,
+  -- m³...) — decisão em aberto, ver docs/04-schema-banco.md.
+  quantidade numeric(14, 3) not null default 1
 );
 
 create index processo_produtos_processo_id_idx on processo_produtos(processo_id);

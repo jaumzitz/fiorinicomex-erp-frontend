@@ -10,6 +10,7 @@ import ProcessosImportacao from '@/routes/ProcessosImportacao'
 import EmpresasCadastro from '@/routes/EmpresasCadastro'
 import BI from '@/routes/BI'
 import Admin from '@/routes/Admin'
+import Login from '@/routes/Login'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <TributosCatalogoProvider>
             <BrowserRouter>
               <Routes>
+                <Route path="login" element={<Login />} />
                 <Route element={<AppLayout />}>
                   <Route index element={<Welcome />} />
                   <Route path="processos" element={<ProcessosImportacao />} />

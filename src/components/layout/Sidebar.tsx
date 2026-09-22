@@ -1,8 +1,21 @@
-import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Ship, Building2, BarChart3, Settings, Package } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import {
+  LayoutDashboard,
+  Ship,
+  Building2,
+  BarChart3,
+  Settings,
+  Package,
+  LogOut,
+} from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { useEmpresaConfig } from '@/store/EmpresaConfigContext'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+
+const USUARIO_LOGADO = { nome: 'Fiorini', email: 'fiorini@fiorinicomex.com.br' }
 
 export const navItems = [
   { to: '/', label: 'Boas-vindas', icon: LayoutDashboard, end: true },
@@ -58,11 +71,43 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
+export function SidebarUserCard() {
+  const navigate = useNavigate()
+  const iniciais = USUARIO_LOGADO.nome.slice(0, 2).toUpperCase()
+
+  return (
+    <div className="mt-auto p-3">
+      <Card className="flex-row items-center gap-2 p-3 shadow-xs">
+        <Avatar className="size-8">
+          <AvatarFallback>{iniciais}</AvatarFallback>
+        </Avatar>
+        <div className="flex min-w-0 flex-1 flex-col leading-tight">
+          <span className="truncate text-sm font-medium">{USUARIO_LOGADO.nome}</span>
+          <span className="text-muted-foreground truncate text-xs">
+            {USUARIO_LOGADO.email}
+          </span>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-7 shrink-0"
+          title="Sair"
+          onClick={() => navigate('/login')}
+        >
+          <LogOut className="size-4" />
+        </Button>
+      </Card>
+    </div>
+  )
+}
+
 export function Sidebar() {
   return (
     <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border hidden h-svh w-64 shrink-0 flex-col border-r lg:flex">
       <SidebarBrand />
       <SidebarNav />
+      <SidebarUserCard />
     </aside>
   )
 }

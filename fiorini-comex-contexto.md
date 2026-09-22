@@ -217,4 +217,6 @@ Como pedido, aqui vão pontos que fazem sentido dado o porte da operação. São
 - [ ] Decidir hospedagem (Hostinger VPS / AWS / Vercel)
 - [ ] Reenviar "documentação adicional" — o briefing original parece ter sido cortado antes de anexá-la
 - [ ] Confirmar significado dos campos da planilha atual (seção 2.1), em especial **CI** e **SISCARGO**
-- [ ] Decidir onde os campos da seção 2.1 entram no modelo do PI e nas telas
+- [x] ~~Decidir onde os campos da seção 2.1 entram no modelo do PI e nas telas~~ → implementado 2026-09-18 (sob as hipóteses da seção 2.1, que continuam a confirmar): LI → `licencaImportacao` (rotulado "LPCO"), ETD → `previsaoEmbarque`, ETA → `previsaoChegada`, HBL/HAWB → `hblHawb`, LCL/FCL → `tipoCarga`, CE → `conhecimentoEmbarque`, MAPA → `dataLiberacaoMapa`, PRESENCA → `dataPresencaCarga` (todos na seção **Transporte** da aba Processo); DI → `numeroDi`, CI → `dataCi`, SISCARGO → `dataSiscargo`, ICMS → `dataIcms` (aba própria **Desembaraço**). Ver `docs/03-modelo-dominio.md`
+- [ ] Definir unidade de medida da quantidade de produto (hoje o PI guarda nome + quantidade numérica, sem unidade)
+- [ ] Definir onde entra o **canal de parametrização** no modelo do PI (confirmado como conceito, mas ainda sem campo)

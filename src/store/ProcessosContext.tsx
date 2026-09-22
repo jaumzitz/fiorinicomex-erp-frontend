@@ -2,7 +2,7 @@ import { createContext, useContext, useState, type ReactNode } from 'react'
 
 import { processos as processosIniciais } from '@/data/mock-data'
 import { hoje } from '@/lib/date'
-import type { Anexo, Comentario, PiStatus, ProcessoImportacao } from '@/types/domain'
+import type { Anexo, Comentario, PiStatus, ProcessoImportacao, Produto } from '@/types/domain'
 
 interface ProcessosContextValue {
   processos: ProcessoImportacao[]
@@ -17,10 +17,12 @@ interface ProcessosContextValue {
   inativarComentario: (id: string, comentarioId: string) => void
   adicionarAnexos: (id: string, anexos: Array<Omit<Anexo, 'id'>>) => void
   atualizarAnexo: (id: string, anexoId: string, patch: Partial<Anexo>) => void
+  removerAnexo: (id: string, anexoId: string) => void
   alternarFornecedorCotado: (id: string, fornecedorId: string) => void
   definirFornecedorAceito: (id: string, fornecedorId: string | undefined) => void
-  adicionarProduto: (id: string, produto: string) => void
-  removerProduto: (id: string, produto: string) => void
+  adicionarProduto: (id: string, produto: Omit<Produto, 'id'>) => void
+  atualizarProduto: (id: string, produtoId: string, patch: Partial<Produto>) => void
+  removerProduto: (id: string, produtoId: string) => void
 }
 
 const ProcessosContext = createContext<ProcessosContextValue | null>(null)
@@ -165,21 +167,54 @@ export function ProcessosProvider({ children }: { children: ReactNode }) {
     )
   }
 
-  function adicionarProduto(id: string, produto: string) {
+  function removerAnexo(id: string, anexoId: string) {
     setProcessos((atual) =>
       atual.map((p) =>
         p.id === id
-          ? { ...p, produtos: [...p.produtos, produto], atualizadoEm: hoje() }
+          ? { ...p, anexos: p.anexos.filter((a) => a.id !== anexoId), atualizadoEm: hoje() }
           : p,
       ),
     )
   }
 
-  function removerProduto(id: string, produto: string) {
+  function adicionarProduto(id: string, produto: Omit<Produto, 'id'>) {
     setProcessos((atual) =>
       atual.map((p) =>
         p.id === id
-          ? { ...p, produtos: p.produtos.filter((item) => item !== produto), atualizadoEm: hoje() }
+          ? {
+              ...p,
+              produtos: [...p.produtos, { ...produto, id: crypto.randomUUID() }],
+              atualizadoEm: hoje(),
+            }
+          : p,
+      ),
+    )
+  }
+
+  function atualizarProduto(id: string, produtoId: string, patch: Partial<Produto>) {
+    setProcessos((atual) =>
+      atual.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              produtos: p.produtos.map((item) =>
+                item.id === produtoId ? { ...item, ...patch } : item,
+              ),
+            }
+          : p,
+      ),
+    )
+  }
+
+  function removerProduto(id: string, produtoId: string) {
+    setProcessos((atual) =>
+      atual.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              produtos: p.produtos.filter((item) => item.id !== produtoId),
+              atualizadoEm: hoje(),
+            }
           : p,
       ),
     )
@@ -197,9 +232,11 @@ export function ProcessosProvider({ children }: { children: ReactNode }) {
         inativarComentario,
         adicionarAnexos,
         atualizarAnexo,
+        removerAnexo,
         alternarFornecedorCotado,
         definirFornecedorAceito,
         adicionarProduto,
+        atualizarProduto,
         removerProduto,
       }}
     >

@@ -64,7 +64,7 @@ export function NumerarioPreview({ processo }: { processo: ProcessoImportacao })
         </div>
         <div>
           <span className="text-muted-foreground">Produto: </span>
-          {processo.produtos.join(', ') || '—'}
+          {processo.produtos.map((produto) => produto.nome).join(', ') || '—'}
         </div>
         <div>
           <span className="text-muted-foreground">Invoice: </span>

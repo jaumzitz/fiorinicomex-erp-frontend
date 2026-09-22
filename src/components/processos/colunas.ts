@@ -181,7 +181,7 @@ export function celulaColuna(p: ProcessoImportacao, id: ColunaId): string {
     case 'numerarioPagoEm':
       return formatarData(p.numerarioPagoEm) || '—'
     case 'produtos':
-      return p.produtos.length > 0 ? p.produtos.join(', ') : '—'
+      return p.produtos.length > 0 ? p.produtos.map((produto) => produto.nome).join(', ') : '—'
     case 'comentarios':
       return String(p.comentarios.length)
     case 'anexos':

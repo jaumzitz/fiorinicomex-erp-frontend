@@ -99,14 +99,25 @@ reutilização futura. Itens do catálogo podem ser **inativados** (nunca
 excluídos) — um item inativo some das sugestões mas não afeta numerários que
 já o usam.
 
+## Produtos do PI
+
+Cada PI lista as mercadorias importadas como **nome + quantidade** (lista
+livre, editável in-place na seção Produtos do drawer). A quantidade ainda
+**não tem unidade de medida** associada — decidir isso é um item em aberto
+para o back-end. O nome dos produtos é o que aparece no campo "Produto" do
+numerário.
+
 ## Comentários e anexos
 
 Comentários e anexos são sempre vinculados a um PI, com um flag
-`visivelNoPortal` (**padrão: oculto**) que controla se aparecem no portal do
-cliente. Comentários também podem opcionalmente carregar o `estagio`
-(status do PI) em que foram criados, para dar contexto na timeline.
-Comentários podem ser excluídos; anexos hoje só podem ter a descrição/visibilidade
-editada (exclusão de anexo ainda não está implementada na UI).
+`visivelNoPortal` (**padrão: oculto**, rotulado na UI como "Visível só para
+mim") que controla se aparecem no portal do cliente. Comentários também podem
+opcionalmente carregar o `estagio` (status do PI) em que foram criados, para
+dar contexto na timeline.
+
+Comentários são **inativados** (soft delete, somem da timeline mas ficam no
+histórico). Anexos são **excluídos de verdade**, atrás de um diálogo de
+confirmação; além disso podem ser renomeados, abertos e baixados.
 
 ## Portal do cliente (não implementado ainda)
 
@@ -121,6 +132,9 @@ editada (exclusão de anexo ainda não está implementada na UI).
 - Significado exato de dois campos vindos da planilha atual: **CI** e
   **SISCARGO** (hipóteses registradas em `fiorini-comex-contexto.md` §2.1,
   já modelados no sistema como `dataCi`/`dataSiscargo` sob essa hipótese).
+- Unidade de medida da quantidade dos produtos.
+- Onde entra o **canal de parametrização** (verde/amarelo/vermelho): ainda
+  não existe campo para ele no PI.
 - Regras de campo-obrigatório-por-status.
 - Geração do Numerário como PDF (hoje só existe uma prévia em HTML dentro do
   drawer, `NumerarioPreview.tsx`).

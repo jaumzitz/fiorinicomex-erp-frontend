@@ -19,6 +19,8 @@
 
 ```
 src/
+  assets/
+    login-navio.jpg  # imagem de fundo da tela de login
   components/
     ui/            # primitivas estilo shadcn (button, input, select, sheet, dialog, table, ...)
     layout/         # AppLayout, Sidebar, MobileTopBar, PageHeader
@@ -38,7 +40,7 @@ src/
     domain-queries.ts    # consultas derivadas (contagens, próximos embarques, etc.) — candidatas a virar queries SQL/RPC
     utils.ts             # cn() (clsx + tailwind-merge)
   routes/
-    Welcome.tsx, ProcessosImportacao.tsx, EmpresasCadastro.tsx, BI.tsx, Admin.tsx
+    Welcome.tsx, ProcessosImportacao.tsx, EmpresasCadastro.tsx, BI.tsx, Admin.tsx, Login.tsx
   store/
     ProcessosContext.tsx           # estado de processos (PIs) + todas as mutações
     EmpresasCadastradasContext.tsx # estado de empresas cadastradas + mutações
@@ -50,13 +52,20 @@ src/
 
 ## Rotas
 
-| Caminho | Tela | Descrição |
-|---|---|---|
-| `/` | Welcome | Dashboard com KPIs (processos ativos, numerários pendentes, embarques/chegadas) |
-| `/processos` | ProcessosImportacao | Tela principal — tabela/cards/kanban de PIs, drawer de detalhe |
-| `/empresas` | EmpresasCadastro | CRUD de empresas (clientes, exportadores, fornecedores, etc.) |
-| `/bi` | BI | Indicadores: processos por estágio, por cliente, próximos embarques/chegadas |
-| `/admin` | Admin | Perfil da empresa (Fiorini), dados bancários, identidade visual, catálogo de tributos, usuários |
+| Caminho | Tela | Layout | Descrição |
+|---|---|---|---|
+| `/` | Welcome | AppLayout | Dashboard com KPIs (processos ativos, numerários pendentes, embarques/chegadas) |
+| `/processos` | ProcessosImportacao | AppLayout | Tela principal — tabela/cards/kanban de PIs, drawer de detalhe |
+| `/empresas` | EmpresasCadastro | AppLayout | CRUD de empresas (clientes, exportadores, fornecedores, etc.) |
+| `/bi` | BI | AppLayout | Indicadores: processos por estágio, por cliente, próximos embarques/chegadas |
+| `/admin` | Admin | AppLayout | Perfil da empresa (Fiorini), dados bancários, identidade visual, catálogo de tributos, usuários |
+| `/login` | Login | nenhum | Tela de acesso (split screen: imagem + formulário). **Casca de UI** — `onSubmit` só faz `preventDefault()`, não há auth nem rota protegida |
+
+`AppLayout` é uma casca fixa: o container raiz tem `h-svh overflow-hidden`, a
+sidebar (desktop) e a MobileTopBar ficam fora da área rolável e só o `<main>`
+rola (`overflow-y-auto`). Quem criar telas novas não deve assumir que a
+página inteira rola — o scroll vive no `<main>`. `/login` fica **fora** do
+`AppLayout` (sem menu lateral).
 
 ## Estado (Context providers, aninhados em `App.tsx`)
 
@@ -102,13 +111,32 @@ forma em toda a app.
 - **`localStorage`** é usado para persistir *preferências de interface* (não
   dados de negócio): colunas visíveis da tabela de PIs
   (`fiorini-comex:colunas-processos`), modo de visualização (tabela/cards/kanban,
-  `fiorini-comex:visualizacao-processos`). Esse padrão deve continuar mesmo
+  `fiorini-comex:visualizacao-processos`) e largura do drawer do PI
+  (`fiorini-comex:largura-drawer-processo`). Esse padrão deve continuar mesmo
   depois do back-end existir — são preferências client-side, não pertencem
   ao banco.
-- **Abas do drawer do PI**: Processo, Financeiro, Digitação de DI (placeholder,
-  "em construção"), Anexos, Comentários. Cada aba reseta para o estado padrão
-  ao trocar de PI (não fica "lembrando" qual aba/seção estava aberta de um
-  PI para outro).
+- **Abas do drawer do PI**: Processo, Desembaraço, Financeiro, Digitação de DI
+  (placeholder, "em construção"), Anexos, Comentários. Cada aba reseta para o
+  estado padrão ao trocar de PI (não fica "lembrando" qual aba/seção estava
+  aberta de um PI para outro). A barra de abas rola horizontalmente
+  (`overflow-x-auto` + utility `scrollbar-hide` definida em `src/index.css`,
+  mais um `onWheel` que converte scroll vertical em horizontal), porque em
+  telas estreitas as seis abas não cabem.
+- **Drawer do PI redimensionável** (desktop, `min-width: 1024px`): um puxador
+  na borda esquerda ajusta a largura entre 420px e 90% da janela, com o valor
+  persistido em `localStorage`. Dois detalhes não óbvios na implementação
+  (`ProcessoDrawer.tsx`), ambos resolvendo bugs reais:
+  - o estado "arrastando" vive num `useRef`, não em `useState` — com estado o
+    primeiro `pointermove` podia ler um valor desatualizado e o arraste
+    simplesmente não começava;
+  - `setPointerCapture`/`releasePointerCapture` estão em `try/catch`, porque
+    lançam `InvalidPointerId` quando o ponteiro não está "ativo" e uma
+    exceção ali abortaria o início do arraste em silêncio.
+- **Escape dentro de um campo não fecha o drawer**: o `SheetContent` recebe
+  `onEscapeKeyDown` que dá `preventDefault()` quando o alvo é `input`/
+  `textarea`. Sem isso, cancelar a edição do nome de um anexo com Esc fechava
+  o drawer inteiro (o Radix escuta Escape em `document`, fase de captura —
+  `stopPropagation` no handler do campo não resolve).
 - **Combobox reutilizável** (`ComboBoxTexto` dentro de `ProcessoDrawer.tsx`):
   input de texto livre com sugestões filtráveis vindas de uma lista, usado
   tanto para o catálogo de tributos quanto para o campo Exportador. Os dois
@@ -126,6 +154,11 @@ forma em toda a app.
   ficam preservados para não quebrar referências existentes (numerários que
   citam um tributo do catálogo, PIs que apontam para uma empresa inativada,
   etc.). Esse é o padrão a replicar no banco (coluna `ativo`, sem `DELETE`).
+  **Exceções, que são exclusão real**: produtos e anexos de um PI, e os itens
+  de tributo de um numerário — nada aponta para eles. Exclusões destrutivas
+  com consequência (numerário inteiro, anexo) passam por um `Dialog` de
+  confirmação com botão `variant="destructive"`; remover uma linha de produto
+  ou de tributo é direto, sem confirmação.
 - **Números de PI**: gerados client-side como `PI-{maior número atual + 1}`
   (`proximoNumero()` em `ProcessosContext.tsx`). Em produção com múltiplas
   escritas concorrentes isso precisa virar uma sequence/lock no banco para
@@ -146,8 +179,15 @@ forma em toda a app.
    deve resolver-se sozinho ao consultar a mesma tabela `empresas` em toda a
    aplicação.
 4. Implementar upload real de anexos (Supabase Storage) — hoje é só uma
-   `URL.createObjectURL()` local, que não sobrevive a um reload.
+   `URL.createObjectURL()` local, que não sobrevive a um reload. A UI de
+   anexos já está completa (miniatura, renomear, baixar, excluir com
+   confirmação, visibilidade no portal); falta só o armazenamento de verdade,
+   e a exclusão precisa passar a remover o objeto no bucket.
 5. Geração do Numerário em PDF (hoje só existe a prévia em HTML/tela).
-6. Autenticação (o app não tem login nenhum hoje — é uma SPA totalmente
-   aberta, pensada para uso local/pessoal na Fase 1).
+6. Autenticação de verdade. A tela `/login` existe visualmente, mas não há
+   sessão, rota protegida nem `AuthContext` — o app continua uma SPA
+   totalmente aberta. Ao implementar: criar o contexto de sessão, proteger as
+   rotas do `AppLayout`, substituir a constante `USUARIO_LOGADO` em
+   `Sidebar.tsx` pelo usuário real e fazer o botão de logout encerrar a
+   sessão (hoje ele só navega para `/login`).
 7. Portal do cliente (tela nova, fora do escopo deste front-end interno).
