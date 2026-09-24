@@ -707,7 +707,7 @@ export function ProcessoDrawer({
           </SheetHeader>
 
           <div
-            className="scrollbar-hide flex items-center gap-1 overflow-x-auto border-b px-5"
+            className="scrollbar-hide flex items-center gap-1 overflow-x-auto overflow-y-hidden border-b px-5"
             onWheel={aoRolarAbas}
           >
             {ABAS_DRAWER.map((aba) => (

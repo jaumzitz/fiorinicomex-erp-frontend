@@ -1,4 +1,10 @@
-import type { Empresa, EmpresaConfig, ProcessoImportacao, TributoCatalogo } from '@/types/domain'
+import type {
+  Empresa,
+  EmpresaConfig,
+  ProcessoImportacao,
+  TributoCatalogo,
+  Usuario,
+} from '@/types/domain'
 
 export const TRIBUTOS_CATALOGO_PADRAO: TributoCatalogo[] = [
   { nome: 'Frete Internacional e Taxas', ativo: true },
@@ -165,6 +171,17 @@ export const empresas: Empresa[] = [
     pais: 'China',
     email: 'sales@guangdongweave.cn',
     contatos: [],
+    ativo: true,
+  },
+]
+
+export const usuarios: Usuario[] = [
+  {
+    id: 'user-1',
+    nome: 'Fiorini',
+    email: 'fiorini@fiorinicomex.com.br',
+    cargo: 'Administradora',
+    criadoEm: '2026-01-10',
     ativo: true,
   },
 ]

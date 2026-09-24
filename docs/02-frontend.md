@@ -46,6 +46,7 @@ src/
     EmpresasCadastradasContext.tsx # estado de empresas cadastradas + mutações
     EmpresaConfigContext.tsx       # perfil da própria Fiorini (linha única)
     TributosCatalogoContext.tsx    # catálogo compartilhado de tributos/despesas
+    UsuariosContext.tsx            # usuários do sistema (tela /admin/usuarios) — não é sessão/auth
   types/
     domain.ts       # única fonte de verdade do modelo de domínio (ver 03-modelo-dominio.md)
 ```
@@ -58,7 +59,12 @@ src/
 | `/processos` | ProcessosImportacao | AppLayout | Tela principal — tabela/cards/kanban de PIs, drawer de detalhe |
 | `/empresas` | EmpresasCadastro | AppLayout | CRUD de empresas (clientes, exportadores, fornecedores, etc.) |
 | `/bi` | BI | AppLayout | Indicadores: processos por estágio, por cliente, próximos embarques/chegadas |
-| `/admin` | Admin | AppLayout | Perfil da empresa (Fiorini), dados bancários, identidade visual, catálogo de tributos, usuários |
+| `/admin` | Admin | AppLayout | Hub — cards de navegação para cada seção abaixo |
+| `/admin/empresa` | AdminEmpresa | AppLayout | Nome, CNPJ, responsável, telefone, endereço |
+| `/admin/pagamento` | AdminPagamento | AppLayout | Razão social e dados bancários exibidos no Numerário |
+| `/admin/identidade` | AdminIdentidade | AppLayout | Logo horizontal e ícone do sistema |
+| `/admin/tributos` | AdminTributos | AppLayout | Catálogo de tributos/despesas do numerário |
+| `/admin/usuarios` | AdminUsuarios | AppLayout | CRUD de usuários (não é gestão de sessão/login) |
 | `/login` | Login | nenhum | Tela de acesso (split screen: imagem + formulário). **Casca de UI** — `onSubmit` só faz `preventDefault()`, não há auth nem rota protegida |
 
 `AppLayout` é uma casca fixa: o container raiz tem `h-svh overflow-hidden`, a
@@ -67,6 +73,15 @@ rola (`overflow-y-auto`). Quem criar telas novas não deve assumir que a
 página inteira rola — o scroll vive no `<main>`. `/login` fica **fora** do
 `AppLayout` (sem menu lateral).
 
+As rotas `/admin/*` são todas **irmãs no `App.tsx`** (não usam `<Outlet/>`
+aninhado) — é o mesmo padrão flat das demais rotas do app. A navegação entre
+elas é feita pelos cards do hub e por um breadcrumb (`Breadcrumb`, em
+`src/components/layout/Breadcrumb.tsx`, renderizado via a prop `breadcrumb`
+de `PageHeader`) que sempre volta para `/admin`. Se `/admin` ganhar mais
+seções no futuro, siga esse padrão: uma rota irmã + entrada no array
+`SECOES_ADMIN` (`src/routes/Admin.tsx`) + breadcrumb de dois níveis — evite
+aninhar uma terceira camada de navegação sem necessidade real.
+
 ## Estado (Context providers, aninhados em `App.tsx`)
 
 ```
@@ -74,7 +89,8 @@ EmpresaConfigProvider
   ProcessosProvider
     EmpresasCadastradasProvider
       TributosCatalogoProvider
-        <Routes>
+        UsuariosProvider
+          <Routes>
 ```
 
 Cada provider guarda um array (ou objeto) em memória via `useState`,
@@ -121,7 +137,11 @@ forma em toda a app.
   aberta de um PI para outro). A barra de abas rola horizontalmente
   (`overflow-x-auto` + utility `scrollbar-hide` definida em `src/index.css`,
   mais um `onWheel` que converte scroll vertical em horizontal), porque em
-  telas estreitas as seis abas não cabem.
+  telas estreitas as seis abas não cabem. O `overflow-y-hidden` ao lado **não
+  é redundante**: `overflow-x: auto` sozinho faz o `overflow-y` computar para
+  `auto`, e o `-mb-px` dos botões (que sobrepõe a borda inferior do
+  container) deixa 1px de sobra vertical — o bastante para a faixa arrastar
+  na vertical no toque.
 - **Drawer do PI redimensionável** (desktop, `min-width: 1024px`): um puxador
   na borda esquerda ajusta a largura entre 420px e 90% da janela, com o valor
   persistido em `localStorage`. Dois detalhes não óbvios na implementação
@@ -137,6 +157,14 @@ forma em toda a app.
   `textarea`. Sem isso, cancelar a edição do nome de um anexo com Esc fechava
   o drawer inteiro (o Radix escuta Escape em `document`, fase de captura —
   `stopPropagation` no handler do campo não resolve).
+- **`EditableField` precisa de `min-w-0`**: os campos são itens de um
+  `grid grid-cols-2`, e item de grid tem `min-width: auto` — sem o `min-w-0`
+  a célula não encolhe abaixo do conteúdo e os campos se sobrepõem em telas
+  estreitas. O `appearance-none` nos campos `type="date"` é pelo mesmo
+  motivo: o `input[type=date]` do iOS Safari usa a largura intrínseca do
+  controle nativo e ignora o `w-full` (o `pl-8` do ícone de calendário
+  agrava). Nenhum dos dois é decoração — removê-los traz a sobreposição de
+  volta no iPhone.
 - **Combobox reutilizável** (`ComboBoxTexto` dentro de `ProcessoDrawer.tsx`):
   input de texto livre com sugestões filtráveis vindas de uma lista, usado
   tanto para o catálogo de tributos quanto para o campo Exportador. Os dois
