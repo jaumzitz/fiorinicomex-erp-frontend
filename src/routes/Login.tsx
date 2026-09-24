@@ -20,7 +20,15 @@ export default function Login() {
   }
 
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
+    <div className="relative grid min-h-svh lg:grid-cols-2">
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-cover bg-center lg:hidden"
+        style={{
+          backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${loginNavio})`,
+        }}
+      />
+
       <div
         className="relative hidden flex-col justify-end p-10 text-white lg:flex"
         style={{
@@ -40,12 +48,13 @@ export default function Login() {
         </blockquote>
       </div>
 
-      <div className="flex flex-col items-center justify-center gap-6 px-6 py-12">
+      <div className="relative flex flex-col items-center justify-center gap-6 px-6 py-12">
         <div className="flex w-full max-w-sm flex-col gap-6">
-          <div className="flex flex-col items-center gap-2 lg:hidden">
-            <div className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-md">
+          <div className="flex items-center justify-center gap-2 text-white lg:hidden">
+            <div className="flex size-9 items-center justify-center rounded-md bg-white/10 backdrop-blur-sm">
               <Package className="size-5" />
             </div>
+            <span className="text-lg font-semibold">{empresa.nome}</span>
           </div>
 
           <Card>

@@ -90,6 +90,8 @@ export interface Usuario {
   email: string
   cargo?: string
   criadoEm: string
+  /** Soft delete — usuário inativo perde o acesso mas nunca é removido. */
+  ativo: boolean
 }
 
 export interface Comentario {

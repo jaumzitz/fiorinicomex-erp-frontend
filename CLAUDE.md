@@ -57,10 +57,16 @@ mexer em modelo de dados ou criar telas:
 - Preferências de interface (colunas visíveis, modo de visualização, largura
   do drawer) vão para `localStorage` com prefixo `fiorini-comex:`. Dados de
   negócio **nunca** vão para `localStorage`.
-- **Soft delete via `ativo`** é o padrão para empresas, contatos, comentários
-  e catálogo de tributos. Exceções (exclusão real): produtos, anexos e itens
-  de tributo. Exclusões destrutivas com consequência passam por `Dialog` de
-  confirmação com botão `variant="destructive"`.
+- **Soft delete via `ativo`** é o padrão para empresas, contatos, comentários,
+  usuários e catálogo de tributos. Exceções (exclusão real): produtos, anexos
+  e itens de tributo. Exclusões destrutivas com consequência passam por
+  `Dialog` de confirmação com botão `variant="destructive"`.
+- Telas de configuração ficam sob `/admin/*` como rotas **irmãs** (sem
+  `<Outlet/>` aninhado), listadas no hub `src/routes/Admin.tsx`
+  (`SECOES_ADMIN`) e conectadas por `Breadcrumb`
+  (`src/components/layout/Breadcrumb.tsx`, via a prop `breadcrumb` de
+  `PageHeader`). Nova seção de admin = nova rota irmã, não uma sub-rota
+  aninhada.
 - Português do Brasil em toda a UI e nas mensagens ao usuário.
 
 ## Armadilhas conhecidas

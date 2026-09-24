@@ -56,13 +56,27 @@ para montar o cabeçalho do Numerário e a identidade visual do app (logo,
 
 ## `Usuario`
 
-Modelado no domínio (`id`, `nome`, `email`, `cargo?`, `criadoEm`) mas **ainda
-não alimentado por nenhuma tela** — a Fase 1 não tem autenticação funcional.
-Existe uma tela de login (`/login`) e um card de usuário no rodapé do menu
-lateral, mas ambos são **casca de UI**: o usuário exibido é a constante
-`USUARIO_LOGADO` em `src/components/layout/Sidebar.tsx` e o "logout" apenas
-navega para `/login`. A operação é de uma pessoa só; múltiplos usuários é uma
-necessidade futura, não confirmada.
+| Campo | Tipo | Observação |
+|---|---|---|
+| `id` | string (uuid) | |
+| `nome` | string | |
+| `email` | string | |
+| `cargo` | string \| undefined | opcional |
+| `criadoEm` | string (data) | |
+| `ativo` | boolean | soft delete — mesmo padrão de `Empresa`/`ContatoEmpresa`; "inativar" revoga o acesso sem apagar o registro |
+
+Tela própria em `/admin/usuarios` (`UsuariosContext` / `useUsuarios()`), com
+listagem (tabela no desktop, cards no mobile), criação, edição e
+inativar/ativar — mesmo padrão de `EmpresasCadastradasContext`.
+
+**Isso ainda não é autenticação.** A Fase 1 não tem login funcional: existe
+uma tela `/login` e um card de usuário no rodapé do menu lateral, mas ambos
+são **casca de UI** — o usuário exibido ali é a constante `USUARIO_LOGADO`
+em `src/components/layout/Sidebar.tsx`, independente da tabela de usuários
+gerida em `/admin/usuarios`, e o "logout" só navega para `/login`. A
+operação é de uma pessoa só; múltiplos usuários com login de verdade é uma
+necessidade futura, não confirmada. Ligar as duas coisas (autenticação real
++ esta tela de gestão) é trabalho da Fase 2.
 
 ## `ProcessoImportacao` (o PI — entidade central)
 
