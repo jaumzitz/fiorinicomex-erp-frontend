@@ -20,6 +20,7 @@ export default function AdminPagamento() {
   return (
     <div>
       <PageHeader
+        voltarTo="/admin"
         breadcrumb={
           <Breadcrumb
             items={[{ label: 'Administração', to: '/admin' }, { label: 'Dados para pagamento' }]}

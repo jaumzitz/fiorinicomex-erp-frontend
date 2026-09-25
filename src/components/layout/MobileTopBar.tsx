@@ -18,9 +18,15 @@ export function MobileTopBar() {
       <span className="text-sm font-semibold">{empresa.nome}</span>
 
       <Sheet open={aberto} onOpenChange={setAberto}>
-        <SheetContent side="left" className="w-72 gap-0 p-0">
+        <SheetContent
+          side="left"
+          closeButtonPosition="left"
+          className="w-72 gap-0 p-0"
+        >
           <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
-          <SidebarBrand />
+          <div className="pt-10">
+            <SidebarBrand />
+          </div>
           <SidebarNav onNavigate={() => setAberto(false)} />
           <SidebarUserCard />
         </SheetContent>

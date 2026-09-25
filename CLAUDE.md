@@ -65,8 +65,12 @@ mexer em modelo de dados ou criar telas:
   `<Outlet/>` aninhado), listadas no hub `src/routes/Admin.tsx`
   (`SECOES_ADMIN`) e conectadas por `Breadcrumb`
   (`src/components/layout/Breadcrumb.tsx`, via a prop `breadcrumb` de
-  `PageHeader`). Nova seção de admin = nova rota irmã, não uma sub-rota
-  aninhada.
+  `PageHeader`) mais um botão de voltar (prop `voltarTo` do `PageHeader`).
+  Nova seção de admin = nova rota irmã, não uma sub-rota aninhada.
+- **Preferências de sistema** (`/admin/preferencias`, `PreferenciasContext`)
+  são distintas de **preferências de interface** (`localStorage`): a
+  primeira é comportamento compartilhado do front-end (ex.: separador do
+  número do PI), a segunda é conveniência client-side por navegador.
 - Português do Brasil em toda a UI e nas mensagens ao usuário.
 
 ## Armadilhas conhecidas
@@ -89,6 +93,20 @@ mexer em modelo de dados ou criar telas:
   `InvalidPointerId` e a exceção aborta o arraste em silêncio.
 - **IDs e número do PI são gerados no client** (`crypto.randomUUID()`,
   `PI-{maior + 1}`). Ao ligar o banco, passe a usar o que o insert retorna.
+- **Número do PI: armazenamento ≠ exibição.** `processo.numero` é sempre
+  `"PI-{n}"`; o separador configurável em `/admin/preferencias` só formata
+  na hora de exibir (`useFormatarNumeroPi()`) e de buscar
+  (`normalizarNumeroPi()`, em `src/lib/numero-pi.ts`). Nunca gere nem
+  compare `numero` já "achatado".
+- **Nenhuma primitiva em `src/components/ui/` usa `forwardRef`** (nem
+  `TableRow`, nem `Card`). Não dá pra fazer `<ContextMenuTrigger asChild>`
+  em cada linha/card individual — envolva o container inteiro uma vez só e
+  descubra o item clicado com `closest('[data-*]')` (ver
+  `ProcessosTable.tsx`/`ProcessosCards.tsx`).
+- **O item selecionado de uma lista pode/deve virar URL, não `useState`**,
+  quando precisar ser linkável (ctrl+clique, "abrir em nova aba", menu de
+  contexto). Ver `?pi=<id>` em `ProcessosImportacao.tsx`
+  (`useSearchParams`) — mesma rota o tempo todo, sem remount.
 
 ## Fora de escopo por enquanto
 

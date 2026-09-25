@@ -103,6 +103,7 @@ export default function AdminUsuarios() {
   return (
     <div>
       <PageHeader
+        voltarTo="/admin"
         breadcrumb={
           <Breadcrumb items={[{ label: 'Administração', to: '/admin' }, { label: 'Usuários' }]} />
         }

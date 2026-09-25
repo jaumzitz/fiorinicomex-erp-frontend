@@ -115,8 +115,27 @@ create table usuarios (
   nome text not null,
   email text not null,
   cargo text,
-  criado_em timestamptz not null default now()
+  criado_em timestamptz not null default now(),
+  -- Soft delete — "inativar" revoga o acesso sem apagar o registro.
+  ativo boolean not null default true
 );
+
+-- ============================================================
+-- Preferências do sistema — linha única, separada de empresa_config
+-- porque não é dado institucional, é comportamento do front-end.
+-- ============================================================
+
+create type separador_numero_pi as enum ('hifen', 'nenhum');
+
+create table preferencias_sistema (
+  id uuid primary key default gen_random_uuid(),
+  -- Controla só a EXIBIÇÃO do número do PI (PI-123 vs PI123).
+  -- processos.numero continua sempre "PI-{sequência}".
+  separador_numero_pi separador_numero_pi not null default 'hifen'
+);
+
+-- Garante uma única linha de preferências.
+create unique index preferencias_sistema_singleton_idx on preferencias_sistema((true));
 
 -- ============================================================
 -- Processos de Importação (PI)
@@ -246,18 +265,23 @@ create table numerarios (
 create table tributos_catalogo (
   id uuid primary key default gen_random_uuid(),
   nome text not null unique,
-  ativo boolean not null default true
+  ativo boolean not null default true,
+  -- Entra automaticamente em todo numerário novo (aplicação filtra por
+  -- padrao = true and ativo = true na hora de gerar numerario_tributos).
+  padrao boolean not null default false
 );
 
--- Seed: itens padrão que entram em todo numerário novo (ver criarNumerario()
--- no front-end / TRIBUTOS_CATALOGO_PADRAO em src/data/mock-data.ts).
-insert into tributos_catalogo (nome) values
-  ('Frete Internacional e Taxas'),
-  ('IPI'),
-  ('PIS'),
-  ('COFINS'),
-  ('Taxa Siscomex'),
-  ('ICMS');
+-- Seed: itens que entram automaticamente em todo numerário novo (ver
+-- criarNumerario() no front-end / TRIBUTOS_CATALOGO_PADRAO em
+-- src/data/mock-data.ts) — é só o estado inicial, editável depois via
+-- /admin/tributos, não uma lista fixa no código.
+insert into tributos_catalogo (nome, padrao) values
+  ('Frete Internacional e Taxas', true),
+  ('IPI', true),
+  ('PIS', true),
+  ('COFINS', true),
+  ('Taxa Siscomex', true),
+  ('ICMS', true);
 
 create table numerario_tributos (
   id uuid primary key default gen_random_uuid(),

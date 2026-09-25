@@ -129,6 +129,8 @@ export interface Produto {
 export interface TributoCatalogo {
   nome: string
   ativo: boolean
+  /** Entra automaticamente em todo numerário novo (ver criarNumerario() em ProcessoDrawer.tsx). */
+  padrao: boolean
 }
 
 export interface DadosBancarios {
@@ -154,6 +156,25 @@ export interface Numerario {
   cotacaoMoeda: number
   tributos: ItemTributo[]
   status: NumerarioStatus
+}
+
+export const SEPARADORES_NUMERO_PI = ['hifen', 'nenhum'] as const
+
+export type SeparadorNumeroPi = (typeof SEPARADORES_NUMERO_PI)[number]
+
+export const SEPARADOR_NUMERO_PI_LABELS: Record<SeparadorNumeroPi, string> = {
+  hifen: 'Hífen (-)',
+  nenhum: 'Nenhum',
+}
+
+/**
+ * Configuração de sistema (linha única), separada de EmpresaConfig porque
+ * não é dado institucional — são preferências de comportamento do
+ * front-end, não do perfil da empresa.
+ */
+export interface PreferenciasSistema {
+  /** Formato de exibição do número do PI (PI-123 vs PI123). A busca sempre entende os dois formatos independente desta escolha. */
+  separadorNumeroPi: SeparadorNumeroPi
 }
 
 export interface EmpresaConfig {

@@ -55,10 +55,11 @@ import { getCliente } from '@/lib/domain-queries'
 import { hoje, formatarData } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { TRIBUTOS_CATALOGO_PADRAO } from '@/data/mock-data'
 import { useProcessos } from '@/store/ProcessosContext'
 import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
 import { useTributosCatalogo } from '@/store/TributosCatalogoContext'
+import { usePreferencias } from '@/store/PreferenciasContext'
+import { formatarNumeroPi } from '@/lib/numero-pi'
 import {
   MODAL_LABELS,
   NUMERARIO_STATUS_LABELS,
@@ -408,6 +409,8 @@ export function ProcessoDrawer({
 
   const [secoesAbertas, setSecoesAbertas] = useState<Record<string, boolean>>(SECOES_PADRAO)
   const [abaAtiva, setAbaAtiva] = useState<AbaDrawer>('processo')
+  const { preferencias } = usePreferencias()
+  const formatarPi = (numero: string) => formatarNumeroPi(numero, preferencias.separadorNumeroPi)
 
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const [larguraDrawer, setLarguraDrawer] = useState(larguraDrawerInicial)
@@ -488,12 +491,12 @@ export function ProcessoDrawer({
   useEffect(() => {
     if (open && processo) {
       const clienteAtual = getCliente(processo.clienteId)
-      document.title = `${processo.numero} | ${clienteAtual?.nomeFantasia ?? 'ERP Fiorini Comex'}`
+      document.title = `${formatarNumeroPi(processo.numero, preferencias.separadorNumeroPi)} | ${clienteAtual?.nomeFantasia ?? 'ERP Fiorini Comex'}`
     }
     return () => {
       document.title = 'ERP Fiorini Comex'
     }
-  }, [open, processo?.numero, processo?.clienteId])
+  }, [open, processo?.numero, processo?.clienteId, preferencias.separadorNumeroPi])
 
   if (!processo) return null
 
@@ -570,7 +573,9 @@ export function ProcessoDrawer({
         invoice: '',
         cotacaoMoeda: 0,
         status: 'nao_liberado',
-        tributos: TRIBUTOS_CATALOGO_PADRAO.map((t) => ({ descricao: t.nome, valor: 0 })),
+        tributos: tributosCatalogo
+          .filter((t) => t.padrao && t.ativo)
+          .map((t) => ({ descricao: t.nome, valor: 0 })),
       },
     })
   }
@@ -621,6 +626,7 @@ export function ProcessoDrawer({
       <SheetContent
         className="w-full gap-0 overflow-y-auto sm:max-w-none"
         style={isDesktop ? { width: larguraDrawer, maxWidth: '95vw' } : undefined}
+        showCloseButton={false}
         onEscapeKeyDown={(e) => {
           const alvo = e.target
           if (alvo instanceof HTMLInputElement || alvo instanceof HTMLTextAreaElement) {
@@ -662,7 +668,7 @@ export function ProcessoDrawer({
             </Button>
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-col gap-0.5">
-                <SheetTitle className="text-lg">{processo.numero}</SheetTitle>
+                <SheetTitle className="text-lg">{formatarPi(processo.numero)}</SheetTitle>
                 <SheetDescription>{cliente?.nomeFantasia}</SheetDescription>
               </div>
               <div className="flex shrink-0 items-center gap-1">
@@ -740,7 +746,7 @@ export function ProcessoDrawer({
           <Dialog open={numerarioAberto} onOpenChange={setNumerarioAberto}>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Numerário — {processo.numero}</DialogTitle>
+                <DialogTitle>Numerário — {formatarPi(processo.numero)}</DialogTitle>
                 <DialogDescription>
                   Prévia do documento enviado ao cliente
                   {processo.numerarioEnviadoEm

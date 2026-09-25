@@ -54,8 +54,18 @@ export function EmpresaDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-xl">
+      <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-xl" showCloseButton={false}>
         <SheetHeader>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="-ml-1 size-7 shrink-0"
+            title="Fechar"
+            onClick={() => onOpenChange(false)}
+          >
+            <X className="size-4" />
+          </Button>
           <div className="flex items-center justify-between gap-2">
             <SheetTitle className="text-lg">{empresa.nomeFantasia || 'Nova empresa'}</SheetTitle>
             <div className="flex items-center gap-2">

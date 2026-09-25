@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Kanban, LayoutGrid, Plus, Search, Table2 } from 'lucide-react'
 
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui/select'
 import { empresas } from '@/data/mock-data'
 import { getCliente } from '@/lib/domain-queries'
+import { normalizarNumeroPi } from '@/lib/numero-pi'
 import { cn } from '@/lib/utils'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useProcessos } from '@/store/ProcessosContext'
@@ -52,11 +54,10 @@ const clientes = empresas.filter((e) => e.tiposRelacionamento.includes('cliente'
 export default function ProcessosImportacao() {
   const { processos, criarProcesso } = useProcessos()
   const isDesktop = useMediaQuery('(min-width: 1024px)')
+  const [searchParams, setSearchParams] = useSearchParams()
   const [busca, setBusca] = useState('')
   const [statusFiltro, setStatusFiltro] = useState<string>('todos')
   const [clienteFiltro, setClienteFiltro] = useState<string>('todos')
-  const [selecionadoId, setSelecionadoId] = useState<string | null>(null)
-  const [drawerAberto, setDrawerAberto] = useState(false)
   const [novoAberto, setNovoAberto] = useState(false)
   const [novoClienteId, setNovoClienteId] = useState('')
   const [novoModal, setNovoModal] = useState<Modal | ''>('')
@@ -68,7 +69,19 @@ export default function ProcessosImportacao() {
 
   const visualizacaoEfetiva: Visualizacao = isDesktop ? visualizacao : 'cards'
 
-  const selecionado = processos.find((p) => p.id === selecionadoId) ?? null
+  // O processo aberto no drawer vive na URL (?pi=<número>), não em estado
+  // local — é o que permite "abrir em nova aba" (ctrl/cmd+clique ou menu de
+  // contexto) apontar para uma URL de verdade. Usa o número do PI (não o
+  // uuid interno) porque é o identificador visível/estável do processo; a
+  // busca por número aceita ambos os formatos (com/sem hífen), então o
+  // parâmetro também aceita.
+  const numeroSelecionado = searchParams.get('pi')
+  const drawerAberto = numeroSelecionado !== null
+  const selecionado = numeroSelecionado
+    ? (processos.find(
+        (p) => normalizarNumeroPi(p.numero) === normalizarNumeroPi(numeroSelecionado),
+      ) ?? null)
+    : null
 
   const clientesUnicos = useMemo(() => {
     const map = new Map<string, string>()
@@ -81,11 +94,13 @@ export default function ProcessosImportacao() {
 
   const processosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase()
+    const termoNumero = normalizarNumeroPi(busca.trim())
     return processos.filter((p) => {
       const cliente = getCliente(p.clienteId)
       const combinaTermo =
         termo === '' ||
         p.numero.toLowerCase().includes(termo) ||
+        (termoNumero !== '' && normalizarNumeroPi(p.numero).includes(termoNumero)) ||
         cliente?.nomeFantasia.toLowerCase().includes(termo)
       const combinaStatus = statusFiltro === 'todos' || p.status === statusFiltro
       const combinaCliente = clienteFiltro === 'todos' || p.clienteId === clienteFiltro
@@ -94,8 +109,30 @@ export default function ProcessosImportacao() {
   }, [processos, busca, statusFiltro, clienteFiltro])
 
   function abrirProcesso(id: string) {
-    setSelecionadoId(id)
-    setDrawerAberto(true)
+    const processo = processos.find((p) => p.id === id)
+    if (!processo) return
+    setSearchParams((atual) => {
+      const novo = new URLSearchParams(atual)
+      novo.set('pi', processo.numero)
+      return novo
+    })
+  }
+
+  function abrirProcessoNovaAba(id: string) {
+    const processo = processos.find((p) => p.id === id)
+    if (!processo) return
+    const url = new URL(window.location.href)
+    url.searchParams.set('pi', processo.numero)
+    window.open(url.toString(), '_blank', 'noopener,noreferrer')
+  }
+
+  function fecharDrawer(aberto: boolean) {
+    if (aberto) return
+    setSearchParams((atual) => {
+      const novo = new URLSearchParams(atual)
+      novo.delete('pi')
+      return novo
+    })
   }
 
   function criar() {
@@ -185,13 +222,25 @@ export default function ProcessosImportacao() {
 
       <div className="px-4 pb-8 sm:px-8">
         {visualizacaoEfetiva === 'tabela' && (
-          <ProcessosTable processos={processosFiltrados} onSelecionar={abrirProcesso} />
+          <ProcessosTable
+            processos={processosFiltrados}
+            onSelecionar={abrirProcesso}
+            onAbrirNovaAba={abrirProcessoNovaAba}
+          />
         )}
         {visualizacaoEfetiva === 'cards' && (
-          <ProcessosCards processos={processosFiltrados} onSelecionar={abrirProcesso} />
+          <ProcessosCards
+            processos={processosFiltrados}
+            onSelecionar={abrirProcesso}
+            onAbrirNovaAba={abrirProcessoNovaAba}
+          />
         )}
         {visualizacaoEfetiva === 'kanban' && (
-          <ProcessosKanban processos={processosFiltrados} onSelecionar={abrirProcesso} />
+          <ProcessosKanban
+            processos={processosFiltrados}
+            onSelecionar={abrirProcesso}
+            onAbrirNovaAba={abrirProcessoNovaAba}
+          />
         )}
       </div>
 
@@ -259,7 +308,7 @@ export default function ProcessosImportacao() {
       <ProcessoDrawer
         processo={selecionado}
         open={drawerAberto}
-        onOpenChange={setDrawerAberto}
+        onOpenChange={fecharDrawer}
       />
     </div>
   )
