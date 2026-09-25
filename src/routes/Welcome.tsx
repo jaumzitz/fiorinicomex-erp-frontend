@@ -13,10 +13,12 @@ import {
 } from '@/lib/domain-queries'
 import { formatarData } from '@/lib/date'
 import { useProcessos } from '@/store/ProcessosContext'
+import { useFormatarNumeroPi } from '@/store/PreferenciasContext'
 import { PI_STATUS_LABELS } from '@/types/domain'
 
 export default function Welcome() {
   const { processos } = useProcessos()
+  const formatarPi = useFormatarNumeroPi()
   const statusCounts = countByStatus(processos)
   const ativos = processosAtivos(processos)
   const embarques = proximosEmbarques(processos)
@@ -110,7 +112,7 @@ export default function Welcome() {
                 {pendentes.map((p) => (
                   <li key={p.id} className="flex items-center gap-2 text-sm">
                     <Wallet className="text-muted-foreground size-4 shrink-0" />
-                    <span className="font-medium">{p.numero}</span>
+                    <span className="font-medium">{formatarPi(p.numero)}</span>
                     <span className="text-muted-foreground">
                       {getCliente(p.clienteId)?.nomeFantasia} — numerário enviado em{' '}
                       {formatarData(p.numerarioEnviadoEm)}, ainda sem confirmação de
@@ -135,7 +137,7 @@ export default function Welcome() {
               {embarques.map((p) => (
                 <li key={p.id} className="flex items-center justify-between text-sm">
                   <span>
-                    {p.numero} — {getCliente(p.clienteId)?.nomeFantasia}
+                    {formatarPi(p.numero)} — {getCliente(p.clienteId)?.nomeFantasia}
                   </span>
                   <span className="text-muted-foreground">
                     {formatarData(p.previsaoEmbarque)}
@@ -158,7 +160,7 @@ export default function Welcome() {
               {chegadas.map((p) => (
                 <li key={p.id} className="flex items-center justify-between text-sm">
                   <span>
-                    {p.numero} — {getCliente(p.clienteId)?.nomeFantasia}
+                    {formatarPi(p.numero)} — {getCliente(p.clienteId)?.nomeFantasia}
                   </span>
                   <span className="text-muted-foreground">
                     {formatarData(p.previsaoChegada)}

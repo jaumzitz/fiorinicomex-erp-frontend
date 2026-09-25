@@ -14,6 +14,7 @@
   Context Provider (ver "Estado" abaixo).
 - Ícones: `lucide-react`.
 - Sem framework de testes configurado ainda.
+- **PWA** via `vite-plugin-pwa` (ver seção "PWA" abaixo).
 
 ## Estrutura de pastas
 
@@ -22,8 +23,8 @@ src/
   assets/
     login-navio.jpg  # imagem de fundo da tela de login
   components/
-    ui/            # primitivas estilo shadcn (button, input, select, sheet, dialog, table, ...)
-    layout/         # AppLayout, Sidebar, MobileTopBar, PageHeader
+    ui/            # primitivas estilo shadcn (button, input, select, sheet, dialog, table, context-menu, ...)
+    layout/         # AppLayout, Sidebar, MobileTopBar, MobileTabBar, OfflineBanner, PageHeader
     processos/      # tabela/cards/kanban de PIs + configuração de colunas
     empresas/       # tabela/cards/drawer de empresas cadastradas
     ProcessoDrawer.tsx    # o drawer de detalhe do PI — o componente mais complexo do app
@@ -35,9 +36,11 @@ src/
     mock-data.ts    # todos os dados iniciais (seed) — substitui o banco na Fase 1
   hooks/
     use-media-query.ts
+    use-online-status.ts  # window online/offline, usado pelo OfflineBanner
   lib/
     date.ts             # formatação de datas
     domain-queries.ts    # consultas derivadas (contagens, próximos embarques, etc.) — candidatas a virar queries SQL/RPC
+    numero-pi.ts          # formatarNumeroPi()/normalizarNumeroPi() — ver "Número do PI" abaixo
     utils.ts             # cn() (clsx + tailwind-merge)
   routes/
     Welcome.tsx, ProcessosImportacao.tsx, EmpresasCadastro.tsx, BI.tsx, Admin.tsx, Login.tsx
@@ -47,6 +50,7 @@ src/
     EmpresaConfigContext.tsx       # perfil da própria Fiorini (linha única)
     TributosCatalogoContext.tsx    # catálogo compartilhado de tributos/despesas
     UsuariosContext.tsx            # usuários do sistema (tela /admin/usuarios) — não é sessão/auth
+    PreferenciasContext.tsx        # preferências de sistema (linha única) — separador do número do PI
   types/
     domain.ts       # única fonte de verdade do modelo de domínio (ver 03-modelo-dominio.md)
 ```
@@ -65,32 +69,44 @@ src/
 | `/admin/identidade` | AdminIdentidade | AppLayout | Logo horizontal e ícone do sistema |
 | `/admin/tributos` | AdminTributos | AppLayout | Catálogo de tributos/despesas do numerário |
 | `/admin/usuarios` | AdminUsuarios | AppLayout | CRUD de usuários (não é gestão de sessão/login) |
+| `/admin/preferencias` | AdminPreferencias | AppLayout | Tabela de parâmetros de sistema (hoje: separador do número do PI) |
 | `/login` | Login | nenhum | Tela de acesso (split screen: imagem + formulário). **Casca de UI** — `onSubmit` só faz `preventDefault()`, não há auth nem rota protegida |
 
 `AppLayout` é uma casca fixa: o container raiz tem `h-svh overflow-hidden`, a
-sidebar (desktop) e a MobileTopBar ficam fora da área rolável e só o `<main>`
-rola (`overflow-y-auto`). Quem criar telas novas não deve assumir que a
-página inteira rola — o scroll vive no `<main>`. `/login` fica **fora** do
-`AppLayout` (sem menu lateral).
+sidebar (desktop) e a MobileTopBar/MobileTabBar ficam fora da área rolável e
+só o `<main>` rola (`overflow-y-auto`). Quem criar telas novas não deve
+assumir que a página inteira rola — o scroll vive no `<main>`. `/login` fica
+**fora** do `AppLayout` (sem menu lateral).
+
+Abaixo de `lg` a navegação principal é **dupla**: `MobileTopBar` (hambúrguer
++ menu lateral completo, todas as 5 seções) no topo, e `MobileTabBar` (Início,
+Processos, BI, Empresas — os 4 destinos mais usados) fixo no rodapé. O menu
+lateral continua com a lista completa (inclusive Administração); a tab bar é
+um atalho para os 4 principais, não uma substituição.
 
 As rotas `/admin/*` são todas **irmãs no `App.tsx`** (não usam `<Outlet/>`
 aninhado) — é o mesmo padrão flat das demais rotas do app. A navegação entre
 elas é feita pelos cards do hub e por um breadcrumb (`Breadcrumb`, em
 `src/components/layout/Breadcrumb.tsx`, renderizado via a prop `breadcrumb`
-de `PageHeader`) que sempre volta para `/admin`. Se `/admin` ganhar mais
+de `PageHeader`) que sempre volta para `/admin`. Cada subtela também passa
+`voltarTo="/admin"` para o `PageHeader`, que desenha um botão de seta
+(`ArrowLeft`) ao lado do breadcrumb — mesmo destino do primeiro item do
+breadcrumb, só que como ação explícita de "voltar". Se `/admin` ganhar mais
 seções no futuro, siga esse padrão: uma rota irmã + entrada no array
-`SECOES_ADMIN` (`src/routes/Admin.tsx`) + breadcrumb de dois níveis — evite
-aninhar uma terceira camada de navegação sem necessidade real.
+`SECOES_ADMIN` (`src/routes/Admin.tsx`) + `voltarTo` + breadcrumb de dois
+níveis — evite aninhar uma terceira camada de navegação sem necessidade
+real.
 
 ## Estado (Context providers, aninhados em `App.tsx`)
 
 ```
 EmpresaConfigProvider
-  ProcessosProvider
-    EmpresasCadastradasProvider
-      TributosCatalogoProvider
-        UsuariosProvider
-          <Routes>
+  PreferenciasProvider
+    ProcessosProvider
+      EmpresasCadastradasProvider
+        TributosCatalogoProvider
+          UsuariosProvider
+            <Routes>
 ```
 
 Cada provider guarda um array (ou objeto) em memória via `useState`,
@@ -124,6 +140,51 @@ forma em toda a app.
 
 ## Padrões de UI que valem a pena conhecer
 
+- **O drawer do PI é endereçável pela URL.** Em `ProcessosImportacao.tsx`, o
+  processo aberto vive em `?pi=<número>` (ex.: `?pi=PI-1024`, via
+  `useSearchParams`), não em `useState` local — é o que permite ctrl/cmd+clique
+  numa linha/card e o item "Abrir em nova aba" do menu de contexto (botão
+  direito) apontarem para uma URL de verdade via `window.open(...)`. Usa o
+  **número** do PI, não o `id` (uuid interno) — é o identificador estável e
+  visível; a leitura do parâmetro passa por `normalizarNumeroPi()` para aceitar
+  o número com ou sem hífen. Um clique normal navega no mesmo componente (sem
+  reload, sem perder os filtros locais). Se uma tela nova precisar do mesmo
+  comportamento ("abrir item em nova aba"), siga este padrão — não invente
+  estado local para o item selecionado.
+  Menu de contexto usa o primitive novo `src/components/ui/context-menu.tsx`
+  (`@radix-ui/react-context-menu`); como `TableRow`/`Card` não são
+  `forwardRef`, o `ContextMenuTrigger asChild` **não** envolve cada
+  linha/card — envolve o container inteiro (tabela/grid) uma única vez, e o
+  handler de `onContextMenu` descobre o item clicado via
+  `closest('[data-processo-id]')`.
+- **Número do PI: armazenamento ≠ exibição.** `processo.numero` é sempre
+  `PI-{sequência}` — nunca comparar/gerar esse valor com o separador
+  "achatado". Quem exibe o número usa `useFormatarNumeroPi()`
+  (`src/store/PreferenciasContext.tsx`); quem busca por número usa
+  `normalizarNumeroPi()` (`src/lib/numero-pi.ts`) para casar `"PI-123"`,
+  `"pi123"` e `"123"` com o mesmo processo, seja qual for a preferência
+  configurada em `/admin/preferencias`. Ao adicionar uma tela nova que
+  mostra ou busca `numero`, use essas funções em vez de ler o campo cru.
+- **`SheetContent` tem `showCloseButton`/`closeButtonPosition`** (padrão:
+  mostrar, à direita). O X embutido é a exceção hoje — só o menu mobile
+  (`MobileTopBar`) usa `closeButtonPosition="left"` para alinhar com o botão
+  de hambúrguer que o abre. `ProcessoDrawer` e `EmpresaDrawer` desligam esse
+  X (`showCloseButton={false}`) e desenham o próprio botão de fechar como
+  elemento normal do cabeçalho (antes do título) — evita o X sobrepor outro
+  conteúdo do header e deixa a posição sob controle de cada drawer. Um
+  drawer novo com necessidades de cabeçalho simples pode só usar o X padrão;
+  um com título/badges/ações no cabeçalho deve seguir o padrão dos dois
+  drawers existentes.
+- **Ordenação por coluna na tabela de PIs** (`ProcessosTable.tsx`): clicar num
+  cabeçalho ordena asc → desc → volta à ordem original (3 estados), com um
+  ícone indicando a direção ativa. `colunas.ts` expõe
+  `valorOrdenacaoColuna()` — os valores "crus" comparáveis (datas ISO,
+  números, índice do enum de estágio/status do numerário), **diferente** de
+  `celulaColuna()`, que devolve texto já formatado para exibição (uma data
+  `dd/mm/aaaa` não ordena certo como string). Uma coluna nova só precisa de
+  um `case` em cada uma das duas funções. Estado de ordenação é local ao
+  componente (como o de colunas visíveis/reordenadas) — não afeta as visões
+  Cards/Kanban.
 - **`localStorage`** é usado para persistir *preferências de interface* (não
   dados de negócio): colunas visíveis da tabela de PIs
   (`fiorini-comex:colunas-processos`), modo de visualização (tabela/cards/kanban,
@@ -196,6 +257,34 @@ forma em toda a app.
   que é criado na sessão (comentários, anexos, PIs, empresas, contatos). Ao
   ligar no banco, o ideal é deixar o Postgres gerar o `uuid` (`gen_random_uuid()`)
   e o front usar o ID retornado pelo insert, não mais gerar client-side.
+
+## PWA
+
+O app é instalável e funciona offline (para navegação e leitura — Fase 1 não
+tem escrita em servidor mesmo online, então "offline" aqui é sobre o *shell*
+do app, não sobre sincronizar dados).
+
+- **`vite-plugin-pwa`** (`vite.config.ts`) gera o manifest
+  (`manifest.webmanifest`) e o service worker (`sw.js` + `workbox-*.js`) no
+  build (`generateSW`, `registerType: 'autoUpdate'`). O service worker só é
+  gerado/registrado em build de produção — `npm run dev` não tem um (o plugin
+  desativa isso por padrão); para testar o comportamento de PWA de verdade,
+  use `npm run build && npm run preview` (há uma config `fiorini-comex-preview`
+  em `.claude/launch.json`, porta 4173).
+- `registerSW()` é chamado uma vez em `src/main.tsx`.
+- Ícones em `public/` (`pwa-192x192.png`, `pwa-512x512.png`,
+  `maskable-icon-512x512.png`, `apple-touch-icon.png`) foram gerados a partir
+  de um SVG fonte (ícone "navio" do lucide sobre fundo quadrado escuro) — não
+  são o mesmo arquivo do `favicon.png` da aba do navegador, que continua
+  como estava.
+- **Indicador de offline**: `useOnlineStatus()` (`src/hooks/use-online-status.ts`)
+  escuta os eventos `online`/`offline` do `window`; `OfflineBanner`
+  (`src/components/layout/OfflineBanner.tsx`) some quando `online` e mostra uma
+  faixa fixa no topo quando não. Fica fora da coluna sidebar+conteúdo em
+  `AppLayout.tsx` (envolve as duas), para aparecer por cima do app inteiro sem
+  quebrar a regra de "só o `<main>` rola" — o layout virou
+  `flex-col` (banner + linha sidebar/conteúdo) em vez de só a linha.
+  A tela `/login` (fora do `AppLayout`) não tem o banner.
 
 ## O que falta para a Fase 2 (back-end)
 

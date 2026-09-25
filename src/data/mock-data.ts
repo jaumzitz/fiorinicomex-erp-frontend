@@ -1,18 +1,19 @@
 import type {
   Empresa,
   EmpresaConfig,
+  PreferenciasSistema,
   ProcessoImportacao,
   TributoCatalogo,
   Usuario,
 } from '@/types/domain'
 
 export const TRIBUTOS_CATALOGO_PADRAO: TributoCatalogo[] = [
-  { nome: 'Frete Internacional e Taxas', ativo: true },
-  { nome: 'IPI', ativo: true },
-  { nome: 'PIS', ativo: true },
-  { nome: 'COFINS', ativo: true },
-  { nome: 'Taxa Siscomex', ativo: true },
-  { nome: 'ICMS', ativo: true },
+  { nome: 'Frete Internacional e Taxas', ativo: true, padrao: true },
+  { nome: 'IPI', ativo: true, padrao: true },
+  { nome: 'PIS', ativo: true, padrao: true },
+  { nome: 'COFINS', ativo: true, padrao: true },
+  { nome: 'Taxa Siscomex', ativo: true, padrao: true },
+  { nome: 'ICMS', ativo: true, padrao: true },
 ]
 
 export const empresas: Empresa[] = [
@@ -185,6 +186,10 @@ export const usuarios: Usuario[] = [
     ativo: true,
   },
 ]
+
+export const preferenciasSistemaPadrao: PreferenciasSistema = {
+  separadorNumeroPi: 'hifen',
+}
 
 export const empresaConfigPadrao: EmpresaConfig = {
   nome: 'Fiorini Comex',

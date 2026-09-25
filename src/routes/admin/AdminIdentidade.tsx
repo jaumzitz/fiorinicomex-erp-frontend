@@ -10,6 +10,7 @@ export default function AdminIdentidade() {
   return (
     <div>
       <PageHeader
+        voltarTo="/admin"
         breadcrumb={
           <Breadcrumb
             items={[{ label: 'Administração', to: '/admin' }, { label: 'Identidade visual' }]}

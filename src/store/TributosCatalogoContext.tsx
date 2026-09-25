@@ -7,6 +7,7 @@ interface TributosCatalogoContextValue {
   tributosCatalogo: TributoCatalogo[]
   adicionarTributoCatalogo: (nome: string) => void
   alternarAtivoTributoCatalogo: (nome: string) => void
+  alternarPadraoTributoCatalogo: (nome: string) => void
 }
 
 const TributosCatalogoContext = createContext<TributosCatalogoContextValue | null>(null)
@@ -25,7 +26,7 @@ export function TributosCatalogoProvider({ children }: { children: ReactNode }) 
           ? atual
           : atual.map((t) => (t === existente ? { ...t, ativo: true } : t))
       }
-      return [...atual, { nome: valor, ativo: true }]
+      return [...atual, { nome: valor, ativo: true, padrao: false }]
     })
   }
 
@@ -35,9 +36,20 @@ export function TributosCatalogoProvider({ children }: { children: ReactNode }) 
     )
   }
 
+  function alternarPadraoTributoCatalogo(nome: string) {
+    setTributosCatalogo((atual) =>
+      atual.map((t) => (t.nome === nome ? { ...t, padrao: !t.padrao } : t)),
+    )
+  }
+
   return (
     <TributosCatalogoContext.Provider
-      value={{ tributosCatalogo, adicionarTributoCatalogo, alternarAtivoTributoCatalogo }}
+      value={{
+        tributosCatalogo,
+        adicionarTributoCatalogo,
+        alternarAtivoTributoCatalogo,
+        alternarPadraoTributoCatalogo,
+      }}
     >
       {children}
     </TributosCatalogoContext.Provider>

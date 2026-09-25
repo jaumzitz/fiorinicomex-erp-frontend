@@ -15,6 +15,7 @@ export default function AdminEmpresa() {
   return (
     <div>
       <PageHeader
+        voltarTo="/admin"
         breadcrumb={
           <Breadcrumb
             items={[{ label: 'Administração', to: '/admin' }, { label: 'Dados da empresa' }]}

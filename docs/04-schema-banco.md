@@ -41,9 +41,28 @@ aplicada.
 - **`processo_produtos` tem `nome` + `quantidade`** (antes era só uma coluna
   `produto` de texto) — acompanhando a mudança do front-end de
   `produtos: string[]` para `Produto[]` em 2026-09-18.
+- **`usuarios` também é soft-delete via `ativo`** (2026-09-24) — "inativar"
+  revoga o acesso sem apagar o registro. Tinha ficado de fora da migração
+  quando o campo foi adicionado no front-end; corrigido junto com a tela de
+  gestão de usuários.
+- **`tributos_catalogo.padrao`** (2026-09-24) — quais itens entram
+  automaticamente em todo numerário novo. Antes era uma lista hardcoded no
+  front-end (`TRIBUTOS_CATALOGO_PADRAO`, os mesmos 6 itens do seed); agora é
+  um campo editável por item (tela `/admin/tributos`), então a
+  aplicação/API deve gerar `numerario_tributos` de um numerário novo
+  consultando `tributos_catalogo where padrao and ativo`, não uma lista
+  fixa no código.
+- **`preferencias_sistema` é singleton, separada de `empresa_config`**
+  (2026-09-24) — mesmo padrão de linha única (índice único parcial), mas
+  conceitualmente distinta: não é dado institucional da empresa, é
+  comportamento do front-end (hoje só o separador de exibição do número do
+  PI). `processos.numero` continua sempre `PI-{sequência}` no banco; o
+  separador é só uma transformação de exibição, nunca deve ser aplicado ao
+  dado armazenado nem à geração do próximo número.
 - **Enums do Postgres** para todo conjunto fechado de valores (`pi_status`,
   `pi_modal`, `pi_tipo_carga`, `tipo_relacionamento_empresa`,
-  `numerario_status`) — mapeiam 1:1 para os `as const` arrays do TypeScript.
+  `numerario_status`, `separador_numero_pi`) — mapeiam 1:1 para os
+  `as const` arrays do TypeScript.
 - **`exportador_id` é FK opcional para `empresas`** (resolvido 2026-08-15) —
   ver a nota em [03-modelo-dominio.md](03-modelo-dominio.md) sobre como o
   front-end resolve isso sem exigir cadastro prévio (cria a empresa
@@ -113,6 +132,12 @@ erDiagram
         text email
         text cargo
         timestamptz criado_em
+        boolean ativo
+    }
+
+    PREFERENCIAS_SISTEMA {
+        uuid id PK
+        enum separador_numero_pi
     }
 
     PROCESSOS {
@@ -171,6 +196,7 @@ erDiagram
         uuid id PK
         text nome UK
         boolean ativo
+        boolean padrao
     }
 
     NUMERARIO_TRIBUTOS {
@@ -218,8 +244,9 @@ erDiagram
 ```
 
 > `USUARIOS.id` referencia `auth.users(id)` do Supabase Auth (fora deste
-> diagrama). `EMPRESA_CONFIG` é uma tabela singleton (uma única linha,
-> reforçada por índice único parcial) — não se relaciona com mais nada.
+> diagrama). `EMPRESA_CONFIG` e `PREFERENCIAS_SISTEMA` são tabelas singleton
+> (uma única linha, reforçada por índice único parcial) — não se relacionam
+> com mais nada.
 
 ## Mapeamento tipo TypeScript → tabela
 
@@ -227,6 +254,7 @@ erDiagram
 |---|---|
 | `Empresa` | `empresas` + `empresa_relacionamentos` + `contatos_empresa` |
 | `EmpresaConfig` | `empresa_config` (singleton) |
+| `PreferenciasSistema` | `preferencias_sistema` (singleton) |
 | `Usuario` | `usuarios` |
 | `ProcessoImportacao` | `processos` + `processo_fornecedores_cotados` |
 | `Produto` | `processo_produtos` |

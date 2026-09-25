@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator'
 import { getCliente } from '@/lib/domain-queries'
 import { useEmpresaConfig } from '@/store/EmpresaConfigContext'
 import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
+import { useFormatarNumeroPi } from '@/store/PreferenciasContext'
 import type { ProcessoImportacao } from '@/types/domain'
 
 function formatMoeda(valor: number) {
@@ -14,6 +15,7 @@ function formatMoeda(valor: number) {
 export function NumerarioPreview({ processo }: { processo: ProcessoImportacao }) {
   const { empresa } = useEmpresaConfig()
   const { empresas } = useEmpresasCadastradas()
+  const formatarPi = useFormatarNumeroPi()
   const numerario = processo.numerario
   if (!numerario) return null
 
@@ -49,7 +51,7 @@ export function NumerarioPreview({ processo }: { processo: ProcessoImportacao })
       </div>
 
       <h2 className="mt-4 text-center text-base font-semibold tracking-wide">
-        NUMERÁRIO — {processo.numero}
+        NUMERÁRIO — {formatarPi(processo.numero)}
       </h2>
 
       <Separator className="my-4" />

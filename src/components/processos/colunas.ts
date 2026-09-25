@@ -2,7 +2,9 @@ import { getCliente, getEmpresa } from '@/lib/domain-queries'
 import { formatarData } from '@/lib/date'
 import {
   MODAL_LABELS,
+  NUMERARIO_STATUSES,
   NUMERARIO_STATUS_LABELS,
+  PI_STATUSES,
   TIPO_CARGA_LABELS,
   type ProcessoImportacao,
 } from '@/types/domain'
@@ -191,4 +193,111 @@ export function celulaColuna(p: ProcessoImportacao, id: ColunaId): string {
     case 'atualizadoEm':
       return formatarData(p.atualizadoEm)
   }
+}
+
+/** Coluna fixa "Nº PI", que não faz parte de `COLUNAS_DISPONIVEIS` mas também é ordenável. */
+export type ColunaOrdenavel = ColunaId | 'numero'
+
+/**
+ * Valor "cru" usado para comparação ao ordenar por uma coluna — diferente de
+ * `celulaColuna`, que já devolve texto formatado para exibição (datas em
+ * `dd/mm/aaaa`, por exemplo, que não ordenam corretamente como string).
+ * `null` representa "sem valor", sempre posicionado por último.
+ */
+export function valorOrdenacaoColuna(
+  p: ProcessoImportacao,
+  id: ColunaOrdenavel,
+): string | number | null {
+  switch (id) {
+    case 'numero':
+      return Number(p.numero.replace(/\D/g, ''))
+    case 'cliente':
+      return getCliente(p.clienteId)?.nomeFantasia ?? null
+    case 'cnpj':
+      return getCliente(p.clienteId)?.cnpj ?? null
+    case 'estagio':
+      return PI_STATUSES.indexOf(p.status)
+    case 'modal':
+      return MODAL_LABELS[p.modal]
+    case 'exportador':
+      return p.exportadorId ? (getEmpresa(p.exportadorId)?.nomeFantasia ?? null) : null
+    case 'referenciaCliente':
+      return p.referenciaCliente ?? null
+    case 'licencaImportacao':
+      return p.licencaImportacao ? 1 : 0
+    case 'tipoCarga':
+      return p.tipoCarga ? TIPO_CARGA_LABELS[p.tipoCarga] : null
+    case 'navio':
+      return p.navio ?? null
+    case 'origem':
+      return p.origem ?? null
+    case 'destino':
+      return p.destino ?? null
+    case 'previsaoEmbarque':
+      return p.previsaoEmbarque ?? null
+    case 'previsaoChegada':
+      return p.previsaoChegada ?? null
+    case 'hblHawb':
+      return p.hblHawb ?? null
+    case 'conhecimentoEmbarque':
+      return p.conhecimentoEmbarque ?? null
+    case 'fornecedorFrete':
+      return p.fornecedorFreteId ? (getEmpresa(p.fornecedorFreteId)?.nomeFantasia ?? null) : null
+    case 'dataLiberacaoMapa':
+      return p.dataLiberacaoMapa ?? null
+    case 'dataChegada':
+      return p.dataChegada ?? null
+    case 'dataPresencaCarga':
+      return p.dataPresencaCarga ?? null
+    case 'numeroDi':
+      return p.numeroDi ?? null
+    case 'dataCi':
+      return p.dataCi ?? null
+    case 'dataSiscargo':
+      return p.dataSiscargo ?? null
+    case 'dataIcms':
+      return p.dataIcms ?? null
+    case 'dataEncerramento':
+      return p.dataEncerramento ?? null
+    case 'numerarioStatus':
+      return p.numerario ? NUMERARIO_STATUSES.indexOf(p.numerario.status) : null
+    case 'numerarioInvoice':
+      return p.numerario?.invoice ?? null
+    case 'numerarioTotal':
+      return p.numerario ? p.numerario.tributos.reduce((soma, item) => soma + item.valor, 0) : null
+    case 'numerarioEnviadoEm':
+      return p.numerarioEnviadoEm ?? null
+    case 'numerarioPagoEm':
+      return p.numerarioPagoEm ?? null
+    case 'produtos':
+      return p.produtos.length
+    case 'comentarios':
+      return p.comentarios.length
+    case 'anexos':
+      return p.anexos.length
+    case 'criadoEm':
+      return p.criadoEm
+    case 'atualizadoEm':
+      return p.atualizadoEm
+  }
+}
+
+export type DirecaoOrdenacao = 'asc' | 'desc'
+
+export function compararProcessos(
+  a: ProcessoImportacao,
+  b: ProcessoImportacao,
+  coluna: ColunaOrdenavel,
+  direcao: DirecaoOrdenacao,
+): number {
+  const valorA = valorOrdenacaoColuna(a, coluna)
+  const valorB = valorOrdenacaoColuna(b, coluna)
+  if (valorA === null && valorB === null) return 0
+  if (valorA === null) return 1
+  if (valorB === null) return -1
+  const sinal = direcao === 'asc' ? 1 : -1
+  if (typeof valorA === 'number' && typeof valorB === 'number') {
+    return (valorA - valorB) * sinal
+  }
+  return String(valorA).localeCompare(String(valorB), 'pt-BR') * sinal
 }

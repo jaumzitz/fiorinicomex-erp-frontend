@@ -1,4 +1,4 @@
-import { Building2, ChevronRight, Image, Landmark, Receipt, Users } from 'lucide-react'
+import { Building2, ChevronRight, Image, Landmark, Receipt, SlidersHorizontal, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { LucideIcon } from 'lucide-react'
 
@@ -35,6 +35,12 @@ const SECOES_ADMIN: { to: string; icon: LucideIcon; titulo: string; descricao: s
     icon: Users,
     titulo: 'Usuários',
     descricao: 'Quem tem acesso ao sistema',
+  },
+  {
+    to: '/admin/preferencias',
+    icon: SlidersHorizontal,
+    titulo: 'Preferências do sistema',
+    descricao: 'Parâmetros de comportamento do front-end',
   },
 ]
 

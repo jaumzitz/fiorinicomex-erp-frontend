@@ -54,6 +54,29 @@ para montar o cabeçalho do Numerário e a identidade visual do app (logo,
 | `dadosBancarios` | `DadosBancarios` (`banco`, `agencia`, `conta`, `pix`, todos string) | exibidos no rodapé do Numerário |
 | `logoHorizontalUrl?`, `iconeUrl?` | string | hoje são object URLs locais (upload não persiste); no back-end viram paths no Supabase Storage |
 
+## `PreferenciasSistema`
+
+Também **linha única**, mas deliberadamente separada de `EmpresaConfig`:
+não é dado institucional da empresa, é comportamento do front-end.
+Gerenciada por `PreferenciasContext` (`usePreferencias()`), tela em
+`/admin/preferencias`.
+
+| Campo | Tipo | Observação |
+|---|---|---|
+| `separadorNumeroPi` | `SeparadorNumeroPi` (`'hifen'` \| `'nenhum'`) | controla só a **exibição** do número do PI (`PI-123` vs `PI123`) — o valor armazenado em `ProcessoImportacao.numero` nunca muda, é sempre `PI-{sequência}` |
+
+Formatação e normalização ficam em `src/lib/numero-pi.ts`:
+- `formatarNumeroPi(numero, separador)` — transforma o valor canônico para
+  exibição. Usado via o atalho `useFormatarNumeroPi()` (mesmo arquivo do
+  Context) em toda tela que mostra `processo.numero`: Boas-vindas, tabela/
+  cards/kanban de Processos, drawer do PI (título e aba do navegador),
+  prévia do Numerário.
+- `normalizarNumeroPi(valor)` — remove hífen/espaços e caixa. Usado na busca
+  de Processos (`ProcessosImportacao.tsx`) para que `"PI-123"`, `"pi123"` e
+  `"123"` combinem com o mesmo processo, **independente da preferência
+  configurada**. Qualquer tela nova que aceite busca por número de PI deve
+  usar essa função, não comparar `numero` cru.
+
 ## `Usuario`
 
 | Campo | Tipo | Observação |
@@ -180,9 +203,12 @@ tributo/despesa sugeridas ao preencher `ItemTributo.descricao`.
 |---|---|---|
 | `nome` | string | chave natural — hoje usado como identificador (não há `id` separado no front) |
 | `ativo` | boolean | soft delete — item inativo some das sugestões mas nunca é removido |
+| `padrao` | boolean | entra automaticamente em todo numerário novo (ver `criarNumerario()` em `ProcessoDrawer.tsx`) — filtra por `padrao && ativo`. Alternado pelo botão "Padrão" em `/admin/tributos`. Um item recém-criado nasce com `padrao: false`; o usuário decide explicitamente marcá-lo |
 
-Seed inicial (sempre entra em todo numerário novo): *Frete Internacional e
-Taxas, IPI, PIS, COFINS, Taxa Siscomex, ICMS*.
+Seed inicial (nasce com `padrao: true`, entra em todo numerário novo — mas
+essa lista deixou de ser hardcoded, é só o estado inicial editável do
+catálogo): *Frete Internacional e Taxas, IPI, PIS, COFINS, Taxa Siscomex,
+ICMS*.
 
 ## `Comentario`
 
