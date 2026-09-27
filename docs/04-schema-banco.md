@@ -1,18 +1,18 @@
 # Schema do banco de dados
 
-Proposta de schema relacional (Postgres via Supabase), derivada do modelo de
-domínio em [03-modelo-dominio.md](03-modelo-dominio.md). Convenção: tabelas e
-colunas em `snake_case`, em português, espelhando os nomes já usados no
-front-end (só troca de `camelCase` para `snake_case`).
+Proposta de schema relacional (Postgres, hospedado em **RDS na AWS** —
+atualizado 2026-09-27, era Supabase até então), derivada do modelo de domínio
+em [03-modelo-dominio.md](03-modelo-dominio.md). Convenção: tabelas e colunas
+em `snake_case`, em português, espelhando os nomes já usados no front-end (só
+troca de `camelCase` para `snake_case`).
 
 O SQL executável correspondente está em
-[`supabase/migrations/20260808000000_initial_schema.sql`](../supabase/migrations/20260808000000_initial_schema.sql).
-Como o projeto ainda não tem nenhum ambiente Supabase provisionado, essa
-migração é editada diretamente para acompanhar o modelo de domínio (não há
-histórico de migração "real" para preservar ainda) — isso deve mudar assim
-que houver um projeto Supabase de verdade rodando: dali em diante, mudanças
-de schema devem virar novas migrações incrementais, nunca editar uma já
-aplicada.
+[`db/migrations/20260808000000_initial_schema.sql`](../db/migrations/20260808000000_initial_schema.sql).
+Como o projeto ainda não tem nenhum RDS provisionado, essa migração é editada
+diretamente para acompanhar o modelo de domínio (não há histórico de
+migração "real" para preservar ainda) — isso deve mudar assim que houver uma
+instância rodando: dali em diante, mudanças de schema devem virar novas
+migrações incrementais, nunca editar uma já aplicada.
 
 ## Decisões de modelagem
 
@@ -72,7 +72,10 @@ aplicada.
   front-end não tem autenticação, então não há ainda um "usuário logado"
   para uma policy referenciar. Precisa ser desenhado junto com a decisão de
   auth (usuário único administrativo vs. múltiplos usuários vs. portal do
-  cliente com acesso restrito por `processo_id`).
+  cliente com acesso restrito por `processo_id`) **e** da camada de API
+  (RDS puro não amarra RLS a um JWT automaticamente como o Supabase fazia —
+  isso vira responsabilidade da API, seja via `SET ROLE`/`current_setting()`
+  por request, seja filtrando no código da aplicação em vez de no banco).
 
 ## Diagrama ER
 
@@ -243,10 +246,11 @@ erDiagram
     TRIBUTOS_CATALOGO ||--o{ NUMERARIO_TRIBUTOS : "sugere descricao para"
 ```
 
-> `USUARIOS.id` referencia `auth.users(id)` do Supabase Auth (fora deste
-> diagrama). `EMPRESA_CONFIG` e `PREFERENCIAS_SISTEMA` são tabelas singleton
-> (uma única linha, reforçada por índice único parcial) — não se relacionam
-> com mais nada.
+> `USUARIOS.id` **não** referencia mais `auth.users` (isso era Supabase Auth;
+> provedor de autenticação em AWS ainda não decidido — ver "O que ainda falta
+> decidir" abaixo). `EMPRESA_CONFIG` e `PREFERENCIAS_SISTEMA` são tabelas
+> singleton (uma única linha, reforçada por índice único parcial) — não se
+> relacionam com mais nada.
 
 ## Mapeamento tipo TypeScript → tabela
 
@@ -266,11 +270,17 @@ erDiagram
 
 ## O que ainda falta decidir antes de provisionar
 
+0. **Camada de API entre o front-end e o RDS** (2026-09-27, decisão de
+   hospedagem virou AWS) — Lambda + API Gateway? ECS/Fargate? outra? Não há
+   nada definido ainda. Essa escolha também molda a resposta do item 1
+   abaixo (RLS "puro" via `SET ROLE` por request só faz sentido com certas
+   arquiteturas de API).
 1. **RLS e modelo de auth** — usuário único administrativo (mais simples) vs.
    múltiplos usuários (a tabela `usuarios` já existe, mas nenhuma tela a
    alimenta) vs. acesso do portal do cliente (precisa de policy própria,
-   provavelmente via token assinado, não via `auth.users`). Existe uma tela
-   de login (`/login`) desenhada, mas sem nenhuma lógica por trás.
+   provavelmente via token assinado). Provedor de autenticação em AWS
+   (Cognito? custom?) ainda não decidido. Existe uma tela de login (`/login`)
+   desenhada, mas sem nenhuma lógica por trás.
 2. **Unidade de medida de `processo_produtos.quantidade`** — hoje é um número
    solto (kg? peças? m³?). Se virar enum/tabela de unidades, é uma coluna
    nova aqui.
@@ -279,8 +289,9 @@ erDiagram
    front-end nem no schema.
 4. **Confirmar semântica de `data_ci` e `data_siscargo`** antes de considerar
    esses nomes definitivos (ver [01-dominio-negocio.md](01-dominio-negocio.md)).
-5. **Storage bucket layout** para `anexos.storage_path` e as duas imagens de
-   `empresa_config` (logo/ícone) — convenção de path ainda não definida.
+5. **Layout de keys no bucket S3** para `anexos.storage_path` e as duas
+   imagens de `empresa_config` (logo/ícone) — convenção de path ainda não
+   definida.
 6. **Geração do número do PI** (`processos.numero`) — hoje o front calcula
    `PI-{maior + 1}` client-side; no banco precisa virar sequence ou função
    com lock para não colidir.

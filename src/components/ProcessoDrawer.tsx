@@ -1370,7 +1370,7 @@ export function ProcessoDrawer({
             )}
             <p className="text-muted-foreground text-xs">
               Upload local por enquanto — o armazenamento real dos arquivos entra
-              quando o back-end (Supabase Storage) for integrado.
+              quando o back-end (S3) for integrado.
             </p>
             <div className="h-10" />
           </div>

@@ -140,5 +140,6 @@ confirmação; além disso podem ser renomeados, abertos e baixados.
   drawer, `NumerarioPreview.tsx`).
 - Envio de e-mail (notificação de status, envio do Numerário) — nenhuma
   integração de provedor de e-mail existe ainda.
-- Hospedagem (Hostinger VPS vs. AWS vs. Vercel) — Supabase já está decidido
-  para auth/storage/banco.
+- ~~Hospedagem (Hostinger VPS vs. AWS vs. Vercel)~~ → confirmado 2026-09-27:
+  **AWS** (RDS Postgres + S3). Camada de API e provedor de autenticação
+  ainda em aberto.

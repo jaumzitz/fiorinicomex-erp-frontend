@@ -115,7 +115,8 @@ que fazem `setState` com um novo array (nunca mutam in-place). **Nada é
 persistido** — um F5 na página descarta qualquer alteração feita na sessão.
 Isso é o gap que o back-end precisa fechar: cada função de mutação do
 Context (`atualizarProcesso`, `adicionarComentario`, `criarEmpresa`, etc.)
-deve virar uma chamada de API/Supabase, mantendo a mesma assinatura onde
+deve virar uma chamada à API (camada ainda a definir — ver
+[04-schema-banco.md](04-schema-banco.md)), mantendo a mesma assinatura onde
 fizer sentido para minimizar mudança nos componentes de UI.
 
 ### Gap conhecido: duas fontes de verdade para `Empresa` (parcialmente resolvido 2026-08-15)
@@ -288,14 +289,15 @@ do app, não sobre sincronizar dados).
 
 ## O que falta para a Fase 2 (back-end)
 
-1. Provisionar Supabase (auth, storage, Postgres) — ver [04-schema-banco.md](04-schema-banco.md).
+1. Provisionar a infraestrutura AWS (RDS Postgres, S3) e decidir a camada de
+   API entre o front-end e o RDS — nada disso está definido ainda, ver
+   [04-schema-banco.md](04-schema-banco.md).
 2. Trocar os quatro Context providers de `useState` para buscar/gravar via
-   Supabase client (ou uma camada de API própria), mantendo os nomes de
-   campo em português já usados no front.
+   essa API, mantendo os nomes de campo em português já usados no front.
 3. Resolver o gap de "duas fontes de verdade para Empresa" citado acima —
    deve resolver-se sozinho ao consultar a mesma tabela `empresas` em toda a
    aplicação.
-4. Implementar upload real de anexos (Supabase Storage) — hoje é só uma
+4. Implementar upload real de anexos (S3) — hoje é só uma
    `URL.createObjectURL()` local, que não sobrevive a um reload. A UI de
    anexos já está completa (miniatura, renomear, baixar, excluir com
    confirmação, visibilidade no portal); falta só o armazenamento de verdade,

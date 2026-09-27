@@ -186,13 +186,23 @@ Como pedido, aqui vão pontos que fazem sentido dado o porte da operação. São
 2. Fases seguintes: a definir conforme o front avança
 
 **Já decidido**
-- **Supabase** para autenticação, storage e banco de dados
+- ~~Supabase para autenticação, storage e banco de dados~~ → **[ATUALIZADO
+  2026-09-27]** Hospedagem AWS: **RDS Postgres** (banco) + **S3** (storage).
+  Autenticação e a camada de API entre front-end e RDS ainda **não** foram
+  decididas (RDS não vem com REST/Auth/RLS-por-JWT prontos como o Supabase
+  oferecia) — ver pendência abaixo.
 - Segurança é prioridade: **OAuth2** e demais protocolos de comunicação segura
 
-- **[CONFIRMADO 2026-07-15]** Banco via Supabase: **relacional**
+- **[CONFIRMADO 2026-07-15]** Banco **relacional** (Postgres) — provedor
+  atualizado de Supabase para RDS em 2026-09-27, decisão de "relacional"
+  continua válida.
 
 **[A DECIDIR]**
-- Hospedagem do servidor: VPS Hostinger (onde já há domínio + WordPress) vs. AWS vs. Vercel
+- ~~Hospedagem do servidor: VPS Hostinger (onde já há domínio + WordPress)
+  vs. AWS vs. Vercel~~ → **[CONFIRMADO 2026-09-27]** AWS
+- Camada de API entre front-end e RDS (Lambda+API Gateway? ECS/Fargate?
+  outra?) e o provedor/mecanismo de autenticação (Cognito? custom?) — ambos
+  em aberto
 - E-mail: já existe provedor contratado no Google Workspace — implementação de envio fica para fase posterior, não bloqueia agora
 
 ---
@@ -214,7 +224,8 @@ Como pedido, aqui vão pontos que fazem sentido dado o porte da operação. São
 - [x] ~~Decidir banco relacional vs. não-relacional no Supabase~~ → confirmado: **relacional**
 - [x] ~~Confirmar quantos/quais fornecedores de frete são cotados por padrão~~ → confirmado: sem regra fixa, escolha manual a cada PI
 - [ ] Recuperar a planilha atual (tem uma aba por status — útil como referência de campos e para migração de dados históricos, se houver)
-- [ ] Decidir hospedagem (Hostinger VPS / AWS / Vercel)
+- [x] ~~Decidir hospedagem (Hostinger VPS / AWS / Vercel)~~ → confirmado
+      2026-09-27: **AWS** (RDS Postgres + S3)
 - [ ] Reenviar "documentação adicional" — o briefing original parece ter sido cortado antes de anexá-la
 - [ ] Confirmar significado dos campos da planilha atual (seção 2.1), em especial **CI** e **SISCARGO**
 - [x] ~~Decidir onde os campos da seção 2.1 entram no modelo do PI e nas telas~~ → implementado 2026-09-18 (sob as hipóteses da seção 2.1, que continuam a confirmar): LI → `licencaImportacao` (rotulado "LPCO"), ETD → `previsaoEmbarque`, ETA → `previsaoChegada`, HBL/HAWB → `hblHawb`, LCL/FCL → `tipoCarga`, CE → `conhecimentoEmbarque`, MAPA → `dataLiberacaoMapa`, PRESENCA → `dataPresencaCarga` (todos na seção **Transporte** da aba Processo); DI → `numeroDi`, CI → `dataCi`, SISCARGO → `dataSiscargo`, ICMS → `dataIcms` (aba própria **Desembaraço**). Ver `docs/03-modelo-dominio.md`

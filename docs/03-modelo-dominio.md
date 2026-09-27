@@ -52,7 +52,7 @@ para montar o cabeçalho do Numerário e a identidade visual do app (logo,
 |---|---|---|
 | `nome`, `razaoSocial`, `cnpj`, `responsavel`, `endereco`, `email`, `telefone` | string | dados institucionais |
 | `dadosBancarios` | `DadosBancarios` (`banco`, `agencia`, `conta`, `pix`, todos string) | exibidos no rodapé do Numerário |
-| `logoHorizontalUrl?`, `iconeUrl?` | string | hoje são object URLs locais (upload não persiste); no back-end viram paths no Supabase Storage |
+| `logoHorizontalUrl?`, `iconeUrl?` | string | hoje são object URLs locais (upload não persiste); no back-end viram paths/keys no S3 |
 
 ## `PreferenciasSistema`
 
@@ -231,8 +231,8 @@ ICMS*.
 | `tamanhoBytes` | number | |
 | `enviadoEm` | string (data) | exibido na linha do anexo |
 | `visivelNoPortal` | boolean | **default `false`**, igual comentário, mesmos rótulos |
-| `url` | string \| undefined | hoje é um `URL.createObjectURL()` local (não sobrevive a reload); no back-end vira o path/URL assinada do Supabase Storage. Quando presente, o nome do arquivo vira link de abrir e aparece o botão de download; a miniatura quadrada da linha mostra a imagem quando a extensão é de imagem |
+| `url` | string \| undefined | hoje é um `URL.createObjectURL()` local (não sobrevive a reload); no back-end vira uma URL assinada (presigned) do S3. Quando presente, o nome do arquivo vira link de abrir e aparece o botão de download; a miniatura quadrada da linha mostra a imagem quando a extensão é de imagem |
 
 Diferente de comentários, **anexo é excluído de verdade** (`removerAnexo`,
-sem soft delete), atrás de um diálogo de confirmação. Ao ligar o Supabase
-Storage, essa exclusão precisa remover também o objeto no bucket.
+sem soft delete), atrás de um diálogo de confirmação. Ao ligar o S3, essa
+exclusão precisa remover também o objeto no bucket.

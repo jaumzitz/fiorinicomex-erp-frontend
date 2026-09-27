@@ -14,8 +14,9 @@ Carregamento → Encerramento`.
 Context inicializado a partir de `src/data/mock-data.ts`; não existe back-end,
 banco nem autenticação, e um reload descarta as alterações da sessão.
 
-A Fase 2 (Supabase: Postgres + Auth + Storage) é o próximo passo e já tem
-documentação preparatória em [`docs/`](docs/).
+A Fase 2 (hospedagem AWS: RDS Postgres + S3; camada de API e autenticação
+ainda em definição) é o próximo passo e já tem documentação preparatória em
+[`docs/`](docs/).
 
 ## Rodando
 
