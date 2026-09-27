@@ -225,6 +225,14 @@ create table processos (
   data_icms date,
   data_encerramento date,
 
+  -- Portal do cliente (2026-09-27): revogação do link/token de acesso a
+  -- este PI sem conta (ver docs/05-implantacao-aws.md). Incrementar
+  -- invalida de uma vez todos os tokens já emitidos — sem blacklist. O
+  -- token também expira sozinho 30 dias após data_encerramento ou o
+  -- status virar 'cancelado'; isso é avaliado a cada request contra os
+  -- campos acima, não como um `exp` fixo gravado no JWT.
+  link_token_version integer not null default 0,
+
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now()
 );

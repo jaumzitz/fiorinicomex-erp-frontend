@@ -66,6 +66,12 @@ migrações incrementais, nunca editar uma já aplicada.
   AWS, ver [05-implantacao-aws.md](05-implantacao-aws.md)). Sem
   contrapartida em `domain.ts`: é infraestrutura de auth, não modelo de
   negócio.
+- **`processos.link_token_version` (nova, 2026-09-27)** — mecanismo de
+  revogação do link/token de acesso a um PI sem conta (mecanismo 3 de
+  [05-implantacao-aws.md](05-implantacao-aws.md)): incrementar essa coluna
+  invalida de uma vez todos os tokens já emitidos pra aquele PI, sem
+  precisar de uma tabela de blacklist. Também sem contrapartida em
+  `domain.ts` pelo mesmo motivo do item acima.
 - **Enums do Postgres** para todo conjunto fechado de valores (`pi_status`,
   `pi_modal`, `pi_tipo_carga`, `tipo_relacionamento_empresa`,
   `numerario_status`, `separador_numero_pi`) — mapeiam 1:1 para os
@@ -187,6 +193,7 @@ erDiagram
         date data_siscargo
         date data_icms
         date data_encerramento
+        integer link_token_version
         timestamptz criado_em
         timestamptz atualizado_em
     }
@@ -301,10 +308,14 @@ portal do cliente para uma `Empresa`), então não tem contrapartida em
 1. ~~RLS e modelo de auth~~ → **[DECIDIDO 2026-09-27]** 2 usuários internos
    (Cognito User Pool próprio) + portal do cliente com conta (e-mail+senha,
    múltiplas contas por empresa, Cognito User Pool separado) e/ou link
-   assinado por PI (sem conta). CNPJ como credencial foi descartado. A
-   tabela `portal_usuarios` já está na migração. Existe uma tela de login
-   (`/login`) desenhada, mas ainda sem nenhuma lógica por trás — isso é
-   implementação, não decisão de arquitetura.
+   assinado por PI (sem conta). CNPJ como credencial foi descartado.
+   Enforcement de acesso é no código da API, não RLS. Token do link expira
+   30 dias após `data_encerramento`/cancelamento (avaliado a cada request,
+   não como `exp` fixo no JWT) e é revogável via `link_token_version`. A
+   tabela `portal_usuarios` e a coluna `processos.link_token_version` já
+   estão na migração — ver [05-implantacao-aws.md](05-implantacao-aws.md).
+   Existe uma tela de login (`/login`) desenhada, mas ainda sem nenhuma
+   lógica por trás — isso é implementação, não decisão de arquitetura.
 2. **Unidade de medida de `processo_produtos.quantidade`** — hoje é um número
    solto (kg? peças? m³?). Se virar enum/tabela de unidades, é uma coluna
    nova aqui.

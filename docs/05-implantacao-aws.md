@@ -30,11 +30,26 @@ Três mecanismos, para três públicos diferentes — **não é um auth único**
    2026-09-27) — cada conta vê todos os PIs da empresa (`clienteId`) à qual
    está associada.
 3. **Link assinado por PI** (decidido 2026-09-27) — **não** é conta, **não**
-   passa pelo Cognito. Um token (JWT de vida curta ou longa) contendo
-   `{ processoId, exp }`, gerado pela API e verificado por um Lambda
-   authorizer numa rota de leitura específica ("ver este PI"). É o
-   equivalente a "compartilhar este processo por link" — escopo de um único
-   PI, nunca a conta inteira do cliente.
+   passa pelo Cognito. Um JWT contendo `{ processoId, ver }`, gerado pela
+   API e verificado por um Lambda authorizer numa rota de leitura
+   específica ("ver este PI"). É o equivalente a "compartilhar este
+   processo por link" — escopo de um único PI, nunca a conta inteira do
+   cliente.
+   - **Expiração (decidido 2026-09-27)**: 30 dias após `data_encerramento`
+     ou depois que o PI virar `cancelado`. Como essa data não existe ainda
+     no momento em que o link é gerado (o PI normalmente está aberto), o
+     JWT **não** carrega um `exp` fixo calculado na emissão — a regra é
+     avaliada **a cada request**, no Lambda authorizer, comparando a data
+     atual contra `processos.data_encerramento`/`status` (dado sempre
+     atualizado, ao contrário de um `exp` congelado no token). O JWT em si
+     leva um `exp` bem distante só como teto de segurança (ex.: 1 ano),
+     não como o mecanismo real de expiração.
+   - **Revogação sem blacklist (decidido 2026-09-27)**: `ver` é comparado
+     contra uma coluna `processos.link_token_version` (inteiro, default
+     `0`). Revogar = incrementar essa coluna — invalida **todos** os links
+     já emitidos pra aquele PI de uma vez. A UI pode gerar um link novo a
+     qualquer momento (ação explícita — "gerar novo link", não é
+     automático).
 
 **Descartado (2026-09-27): autenticação por CNPJ.** Os requisitos originais
 (`fiorini-comex-contexto.md`, seção 9) previam "CNPJ ou token" — o CNPJ como
@@ -64,20 +79,27 @@ create table portal_usuarios (
 );
 ```
 
-Ver [04-schema-banco.md](04-schema-banco.md) para a tabela aplicada na
-migração e o diagrama ER atualizado.
+O mecanismo 3 (link por PI) precisa de uma coluna extra em `processos`:
+`link_token_version integer not null default 0`. Ver
+[04-schema-banco.md](04-schema-banco.md) para essa coluna e a tabela
+`portal_usuarios` já aplicadas na migração, e o diagrama ER atualizado.
+
+## Enforcement de acesso (decidido 2026-09-27)
+
+Filtragem **no código da API** (Lambda), não via RLS no Postgres — com
+Cognito + Lambda authorizer, o Lambda já recebe as claims do chamador.
+Só as rotas do portal do cliente precisam filtrar por `cliente_id` (usuários
+internos veem tudo — despachante de uma pessoa só); o acesso por link já vem
+escopado no próprio JWT (`processoId`), não precisa de filtro adicional. RLS
+no Postgres fica descartado como mecanismo primário — a superfície que
+precisa de disciplina é pequena o suficiente pra um helper compartilhado
+(ex.: toda rota do portal passa por uma função `buscarProcessosDoCliente`,
+não SQL solto por handler) cobrir sem a complexidade extra de simular sessão
+por request na Data API.
 
 ## O que ainda falta decidir
 
-1. **Enforcement de acesso**: com Cognito + Lambda authorizer, o Lambda já
-   sabe quem é o chamador (claims do JWT) — a filtragem de "só os PIs deste
-   cliente" provavelmente acontece no **código da API** (Lambda), não via
-   RLS no Postgres. RLS fica em aberto como camada extra de defesa, não como
-   mecanismo primário — a decidir se vale a complexidade.
-2. **Vida útil do token por PI** (mecanismo 3): expira? Pode ser revogado
-   antes de expirar (ex.: se o cliente pedir)?
-3. Pendências que já existiam antes da escolha de hospedagem (não mudam com
-   AWS): layout de keys no S3, unidade de medida de `processo_produtos`,
-   canal de parametrização, geração do Numerário em PDF, envio de e-mail —
-   ver [04-schema-banco.md](04-schema-banco.md) e
-   [02-frontend.md](02-frontend.md).
+Pendências que já existiam antes da escolha de hospedagem (não mudam com
+AWS): layout de keys no S3, unidade de medida de `processo_produtos`, canal
+de parametrização, geração do Numerário em PDF, envio de e-mail — ver
+[04-schema-banco.md](04-schema-banco.md) e [02-frontend.md](02-frontend.md).
