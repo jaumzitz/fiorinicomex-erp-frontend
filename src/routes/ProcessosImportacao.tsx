@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Kanban, LayoutGrid, Plus, Search, Table2 } from 'lucide-react'
 
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ProcessoDrawer } from '@/components/ProcessoDrawer'
 import { ModalIcon } from '@/components/ModalIcon'
+import { STATUS_DOT_CLASS } from '@/components/StatusBadge'
 import { ProcessosTable } from '@/components/processos/ProcessosTable'
 import { ProcessosCards } from '@/components/processos/ProcessosCards'
 import { ProcessosKanban } from '@/components/processos/ProcessosKanban'
@@ -51,6 +52,82 @@ function visualizacaoInicial(): Visualizacao {
 
 const clientes = empresas.filter((e) => e.tiposRelacionamento.includes('cliente'))
 
+function ComboboxCliente({
+  value,
+  onChange,
+  opcoes,
+}: {
+  value: string
+  onChange: (id: string) => void
+  opcoes: { id: string; nome: string }[]
+}) {
+  const [aberto, setAberto] = useState(false)
+  const [rascunho, setRascunho] = useState('')
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const rotuloSelecionado = opcoes.find((o) => o.id === value)?.nome ?? 'Todos os clientes'
+
+  useEffect(() => {
+    if (!aberto) return
+    function aoClicarFora(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setAberto(false)
+      }
+    }
+    document.addEventListener('mousedown', aoClicarFora)
+    return () => document.removeEventListener('mousedown', aoClicarFora)
+  }, [aberto])
+
+  const termo = rascunho.trim().toLowerCase()
+  const opcoesFiltradas = termo ? opcoes.filter((o) => o.nome.toLowerCase().includes(termo)) : opcoes
+
+  function selecionar(id: string) {
+    onChange(id)
+    setRascunho('')
+    setAberto(false)
+  }
+
+  return (
+    <div ref={containerRef} className="relative w-full sm:w-52">
+      <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+      <Input
+        placeholder="Cliente"
+        value={aberto ? rascunho : rotuloSelecionado}
+        onFocus={() => {
+          setRascunho('')
+          setAberto(true)
+        }}
+        onChange={(e) => setRascunho(e.target.value)}
+        className="pl-8"
+      />
+      {aberto && (
+        <div className="bg-popover absolute top-full left-0 z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border py-1 shadow-md">
+          <button
+            type="button"
+            onClick={() => selecionar('todos')}
+            className="hover:bg-accent block w-full px-3 py-1.5 text-left text-sm"
+          >
+            Todos os clientes
+          </button>
+          {opcoesFiltradas.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => selecionar(o.id)}
+              className="hover:bg-accent block w-full px-3 py-1.5 text-left text-sm"
+            >
+              {o.nome}
+            </button>
+          ))}
+          {opcoesFiltradas.length === 0 && (
+            <p className="text-muted-foreground px-3 py-1.5 text-sm">Nenhum cliente encontrado.</p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ProcessosImportacao() {
   const { processos, criarProcesso } = useProcessos()
   const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -89,7 +166,7 @@ export default function ProcessosImportacao() {
       const cliente = getCliente(p.clienteId)
       if (cliente) map.set(cliente.id, cliente.nomeFantasia)
     }
-    return [...map.entries()]
+    return [...map.entries()].map(([id, nome]) => ({ id, nome }))
   }, [processos])
 
   const processosFiltrados = useMemo(() => {
@@ -157,67 +234,88 @@ export default function ProcessosImportacao() {
         }
       />
 
-      <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:px-8">
-        <div className="relative w-full sm:w-64">
-          <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-          <Input
-            placeholder="Buscar por nº do PI ou cliente"
-            className="pl-8"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-            <SelectTrigger className="w-full sm:w-52">
-              <SelectValue placeholder="Estágio" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os estágios</SelectItem>
-              {PI_STATUSES.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {PI_STATUS_LABELS[status]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={clienteFiltro} onValueChange={setClienteFiltro}>
-            <SelectTrigger className="w-full sm:w-52">
-              <SelectValue placeholder="Cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os clientes</SelectItem>
-              {clientesUnicos.map(([id, nome]) => (
-                <SelectItem key={id} value={id}>
-                  {nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {isDesktop && (
-          <div className="bg-muted inline-flex items-center gap-0.5 self-start rounded-md p-0.5 sm:ml-auto">
-            {OPCOES_VISUALIZACAO.map((op) => (
-              <button
-                key={op.id}
-                type="button"
-                onClick={() => setVisualizacao(op.id)}
-                className={cn(
-                  'flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-sm font-medium transition-colors',
-                  visualizacao === op.id
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <op.icon className="size-4" />
-                {op.label}
-              </button>
-            ))}
+      <div className="flex flex-col gap-3 px-4 py-4 sm:px-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative w-full sm:w-64">
+            <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+            <Input
+              placeholder="Buscar por nº do PI ou cliente"
+              className="pl-8"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
           </div>
-        )}
+
+          <div className="flex flex-wrap gap-3">
+            <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+              <SelectTrigger className="w-full sm:w-52">
+                <SelectValue placeholder="Estágio" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os estágios</SelectItem>
+                {PI_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {PI_STATUS_LABELS[status]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <ComboboxCliente value={clienteFiltro} onChange={setClienteFiltro} opcoes={clientesUnicos} />
+          </div>
+
+          {isDesktop && (
+            <div className="bg-muted inline-flex items-center gap-0.5 self-start rounded-md p-0.5 sm:ml-auto">
+              {OPCOES_VISUALIZACAO.map((op) => (
+                <button
+                  key={op.id}
+                  type="button"
+                  onClick={() => setVisualizacao(op.id)}
+                  className={cn(
+                    'flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-sm font-medium transition-colors',
+                    visualizacao === op.id
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <op.icon className="size-4" />
+                  {op.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setStatusFiltro('todos')}
+            className={cn(
+              'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+              statusFiltro === 'todos'
+                ? 'border-foreground bg-foreground text-background'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            )}
+          >
+            Todos
+          </button>
+          {PI_STATUSES.map((status) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setStatusFiltro(statusFiltro === status ? 'todos' : status)}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                statusFiltro === status
+                  ? 'border-foreground bg-accent text-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              )}
+            >
+              <span className={cn('size-1.5 rounded-full', STATUS_DOT_CLASS[status])} />
+              {PI_STATUS_LABELS[status]}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="px-4 pb-8 sm:px-8">

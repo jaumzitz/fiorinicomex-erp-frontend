@@ -7,11 +7,8 @@ import {
   Pencil,
   Download,
   Boxes,
-  Route,
   Wallet,
   X,
-  FoldVertical,
-  UnfoldVertical,
   Construction,
   Trash2,
 } from 'lucide-react'
@@ -348,16 +345,16 @@ const NUMERARIO_STATUS_DOT: Record<NumerarioStatus, string> = {
 }
 
 const SECOES_PADRAO: Record<string, boolean> = {
-  transporte: true,
   frete: false,
   produtos: false,
 }
 
 const ABAS_DRAWER = [
   { id: 'processo', label: 'Processo' },
+  { id: 'transporte', label: 'Transporte' },
   { id: 'desembaraco', label: 'Desembaraço' },
   { id: 'financeiro', label: 'Financeiro' },
-  { id: 'di', label: 'Digitação de DI' },
+  { id: 'di', label: 'DI' },
   { id: 'anexos', label: 'Anexos' },
   { id: 'comentarios', label: 'Comentários' },
 ] as const
@@ -477,15 +474,6 @@ export function ProcessoDrawer({
 
   function abrirSecao(chave: string) {
     setSecoesAbertas((atual) => ({ ...atual, [chave]: true }))
-  }
-
-  const todasAbertas = Object.values(secoesAbertas).every(Boolean)
-
-  function alternarTodasSecoes() {
-    const novoValor = !todasAbertas
-    setSecoesAbertas(
-      Object.fromEntries(Object.keys(SECOES_PADRAO).map((chave) => [chave, novoValor])),
-    )
   }
 
   useEffect(() => {
@@ -672,24 +660,6 @@ export function ProcessoDrawer({
                 <SheetDescription>{cliente?.nomeFantasia}</SheetDescription>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                {abaAtiva === 'processo' && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-7"
-                    title={
-                      todasAbertas ? 'Recolher todas as seções' : 'Expandir todas as seções'
-                    }
-                    onClick={alternarTodasSecoes}
-                  >
-                    {todasAbertas ? (
-                      <FoldVertical className="size-4" />
-                    ) : (
-                      <UnfoldVertical className="size-4" />
-                    )}
-                  </Button>
-                )}
                 <Select
                   value={processo.status}
                   onValueChange={(v) => alterarStatus(processo.id, v as PiStatus)}
@@ -873,12 +843,70 @@ export function ProcessoDrawer({
         <Separator />
 
         <SecaoDrawer
-          icon={Route}
-          titulo="Transporte"
-          aberto={secoesAbertas.transporte}
-          onToggle={() => alternarSecao('transporte')}
+          icon={Boxes}
+          titulo="Produtos"
+          badge={<Badge variant="secondary">{processo.produtos.length}</Badge>}
+          aberto={secoesAbertas.produtos}
+          onToggle={() => alternarSecao('produtos')}
         >
-          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+          <div className="flex flex-col gap-3">
+            {processo.produtos.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Nenhum produto cadastrado.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {processo.produtos.map((produto) => (
+                  <li key={produto.id} className="flex items-center gap-2">
+                    <Input
+                      placeholder="Nome do produto"
+                      value={produto.nome}
+                      onChange={(e) =>
+                        atualizarProduto(processo.id, produto.id, { nome: e.target.value })
+                      }
+                      className="h-8 flex-1"
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      placeholder="Qtd."
+                      value={produto.quantidade}
+                      onChange={(e) =>
+                        atualizarProduto(processo.id, produto.id, {
+                          quantidade: Number(e.target.value) || 0,
+                        })
+                      }
+                      className="h-8 w-24 shrink-0"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="size-8 shrink-0"
+                      onClick={() => removerProduto(processo.id, produto.id)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-fit"
+              onClick={() => adicionarProduto(processo.id, { nome: '', quantidade: 1 })}
+            >
+              <Plus className="size-4" />
+              Adicionar
+            </Button>
+          </div>
+        </SecaoDrawer>
+        <div className="h-10" />
+        </>
+        )}
+
+        {abaAtiva === 'transporte' && (
+        <>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4 px-5 py-5">
             <div className="flex flex-col gap-1">
               <Label className="text-muted-foreground text-xs font-normal">Modal</Label>
               <Select
@@ -1004,144 +1032,82 @@ export function ProcessoDrawer({
               onChange={(v) => patch('dataPresencaCarga', v)}
             />
           </div>
-        </SecaoDrawer>
 
-        <Separator />
+          <Separator />
 
-        <SecaoDrawer
-          icon={Container}
-          titulo="Frete internacional"
-          badge={
-            cotados.length > 0 && <Badge variant="secondary">{cotados.length}</Badge>
-          }
-          acoes={
-            processo.status === 'contratacao_frete' && cotados.length === 0 ? (
-              <Button size="sm" variant="outline" onClick={() => abrirSecao('frete')}>
-                <Plus className="size-4" />
-                Adicionar cotação
-              </Button>
-            ) : undefined
-          }
-          aberto={secoesAbertas.frete}
-          onToggle={() => alternarSecao('frete')}
-        >
-          <p className="text-muted-foreground text-xs">
-            Selecione os fornecedores com quem foi solicitada cotação para este
-            processo.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {fornecedoresFrete.map((f) => {
-              const cotado = cotados.includes(f.id)
-              const aceito = f.id === processo.fornecedorFreteId
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => alternarFornecedorCotado(processo.id, f.id)}
-                >
-                  <Badge
-                    variant={aceito ? 'default' : cotado ? 'secondary' : 'outline'}
-                    className="cursor-pointer"
+          <SecaoDrawer
+            icon={Container}
+            titulo="Frete internacional"
+            badge={
+              cotados.length > 0 && <Badge variant="secondary">{cotados.length}</Badge>
+            }
+            acoes={
+              processo.status === 'contratacao_frete' && cotados.length === 0 ? (
+                <Button size="sm" variant="outline" onClick={() => abrirSecao('frete')}>
+                  <Plus className="size-4" />
+                  Adicionar cotação
+                </Button>
+              ) : undefined
+            }
+            aberto={secoesAbertas.frete}
+            onToggle={() => alternarSecao('frete')}
+          >
+            <p className="text-muted-foreground text-xs">
+              Selecione os fornecedores com quem foi solicitada cotação para este
+              processo.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {fornecedoresFrete.map((f) => {
+                const cotado = cotados.includes(f.id)
+                const aceito = f.id === processo.fornecedorFreteId
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => alternarFornecedorCotado(processo.id, f.id)}
                   >
-                    {cotado && <Check />}
-                    {f.nomeFantasia}
-                    {aceito ? ' · Aceito' : ''}
-                  </Badge>
-                </button>
-              )
-            })}
-          </div>
-          {cotados.length > 0 && (
-            <div className="flex flex-col gap-1">
-              <Label className="text-muted-foreground text-xs font-normal">
-                Fornecedor aceito
-              </Label>
-              <Select
-                value={processo.fornecedorFreteId ?? 'nenhum'}
-                onValueChange={(v) =>
-                  definirFornecedorAceito(processo.id, v === 'nenhum' ? undefined : v)
-                }
-              >
-                <SelectTrigger size="sm" className="h-8 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="nenhum">Nenhum</SelectItem>
-                  {cotados.map((id) => {
-                    const f = fornecedoresFrete.find((f) => f.id === id)
-                    return (
-                      <SelectItem key={id} value={id}>
-                        {f?.nomeFantasia}
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </SecaoDrawer>
-
-        <Separator />
-
-        <SecaoDrawer
-          icon={Boxes}
-          titulo="Produtos"
-          badge={<Badge variant="secondary">{processo.produtos.length}</Badge>}
-          aberto={secoesAbertas.produtos}
-          onToggle={() => alternarSecao('produtos')}
-        >
-          <div className="flex flex-col gap-3">
-            {processo.produtos.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Nenhum produto cadastrado.</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {processo.produtos.map((produto) => (
-                  <li key={produto.id} className="flex items-center gap-2">
-                    <Input
-                      placeholder="Nome do produto"
-                      value={produto.nome}
-                      onChange={(e) =>
-                        atualizarProduto(processo.id, produto.id, { nome: e.target.value })
-                      }
-                      className="h-8 flex-1"
-                    />
-                    <Input
-                      type="number"
-                      min={0}
-                      placeholder="Qtd."
-                      value={produto.quantidade}
-                      onChange={(e) =>
-                        atualizarProduto(processo.id, produto.id, {
-                          quantidade: Number(e.target.value) || 0,
-                        })
-                      }
-                      className="h-8 w-24 shrink-0"
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="size-8 shrink-0"
-                      onClick={() => removerProduto(processo.id, produto.id)}
+                    <Badge
+                      variant={aceito ? 'default' : cotado ? 'secondary' : 'outline'}
+                      className="cursor-pointer"
                     >
-                      <X className="size-4" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+                      {cotado && <Check />}
+                      {f.nomeFantasia}
+                      {aceito ? ' · Aceito' : ''}
+                    </Badge>
+                  </button>
+                )
+              })}
+            </div>
+            {cotados.length > 0 && (
+              <div className="flex flex-col gap-1">
+                <Label className="text-muted-foreground text-xs font-normal">
+                  Fornecedor aceito
+                </Label>
+                <Select
+                  value={processo.fornecedorFreteId ?? 'nenhum'}
+                  onValueChange={(v) =>
+                    definirFornecedorAceito(processo.id, v === 'nenhum' ? undefined : v)
+                  }
+                >
+                  <SelectTrigger size="sm" className="h-8 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="nenhum">Nenhum</SelectItem>
+                    {cotados.map((id) => {
+                      const f = fornecedoresFrete.find((f) => f.id === id)
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {f?.nomeFantasia}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-fit"
-              onClick={() => adicionarProduto(processo.id, { nome: '', quantidade: 1 })}
-            >
-              <Plus className="size-4" />
-              Adicionar
-            </Button>
-          </div>
-        </SecaoDrawer>
-        <div className="h-10" />
+          </SecaoDrawer>
+          <div className="h-10" />
         </>
         )}
 
