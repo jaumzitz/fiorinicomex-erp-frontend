@@ -1,10 +1,11 @@
 # Schema do banco de dados
 
-Proposta de schema relacional (Postgres, hospedado em **RDS na AWS** —
-atualizado 2026-09-27, era Supabase até então), derivada do modelo de domínio
-em [03-modelo-dominio.md](03-modelo-dominio.md). Convenção: tabelas e colunas
-em `snake_case`, em português, espelhando os nomes já usados no front-end (só
-troca de `camelCase` para `snake_case`).
+Proposta de schema relacional (Postgres, hospedado em **Aurora Serverless v2
+na AWS** — atualizado 2026-09-27, era Supabase até então; ver
+[05-implantacao-aws.md](05-implantacao-aws.md) para a arquitetura completa),
+derivada do modelo de domínio em [03-modelo-dominio.md](03-modelo-dominio.md).
+Convenção: tabelas e colunas em `snake_case`, em português, espelhando os
+nomes já usados no front-end (só troca de `camelCase` para `snake_case`).
 
 O SQL executável correspondente está em
 [`db/migrations/20260808000000_initial_schema.sql`](../db/migrations/20260808000000_initial_schema.sql).
@@ -70,12 +71,12 @@ migrações incrementais, nunca editar uma já aplicada.
   sugestão).
 - **RLS (Row Level Security)** ainda não está no schema — a Fase 1 do
   front-end não tem autenticação, então não há ainda um "usuário logado"
-  para uma policy referenciar. Precisa ser desenhado junto com a decisão de
-  auth (usuário único administrativo vs. múltiplos usuários vs. portal do
-  cliente com acesso restrito por `processo_id`) **e** da camada de API
-  (RDS puro não amarra RLS a um JWT automaticamente como o Supabase fazia —
-  isso vira responsabilidade da API, seja via `SET ROLE`/`current_setting()`
-  por request, seja filtrando no código da aplicação em vez de no banco).
+  para uma policy referenciar. Camada de API e modelo de auth já foram
+  decididos (2026-09-27, ver [05-implantacao-aws.md](05-implantacao-aws.md)):
+  Lambda + API Gateway, com Cognito (dois User Pools) + link assinado por PI.
+  RLS "de verdade" no Postgres continua em aberto como possível camada extra
+  — a filtragem primária deve acontecer no código da API (Lambda), que já
+  recebe as claims do chamador via authorizer.
 
 ## Diagrama ER
 
@@ -247,10 +248,11 @@ erDiagram
 ```
 
 > `USUARIOS.id` **não** referencia mais `auth.users` (isso era Supabase Auth;
-> provedor de autenticação em AWS ainda não decidido — ver "O que ainda falta
-> decidir" abaixo). `EMPRESA_CONFIG` e `PREFERENCIAS_SISTEMA` são tabelas
-> singleton (uma única linha, reforçada por índice único parcial) — não se
-> relacionam com mais nada.
+> o provedor agora é Cognito — ver [05-implantacao-aws.md](05-implantacao-aws.md)
+> — mas a migração ainda não foi atualizada para mapear `usuarios` a um
+> `cognito_sub`, mesma pendência do futuro `portal_usuarios`). `EMPRESA_CONFIG`
+> e `PREFERENCIAS_SISTEMA` são tabelas singleton (uma única linha, reforçada
+> por índice único parcial) — não se relacionam com mais nada.
 
 ## Mapeamento tipo TypeScript → tabela
 
@@ -270,17 +272,17 @@ erDiagram
 
 ## O que ainda falta decidir antes de provisionar
 
-0. **Camada de API entre o front-end e o RDS** (2026-09-27, decisão de
-   hospedagem virou AWS) — Lambda + API Gateway? ECS/Fargate? outra? Não há
-   nada definido ainda. Essa escolha também molda a resposta do item 1
-   abaixo (RLS "puro" via `SET ROLE` por request só faz sentido com certas
-   arquiteturas de API).
-1. **RLS e modelo de auth** — usuário único administrativo (mais simples) vs.
-   múltiplos usuários (a tabela `usuarios` já existe, mas nenhuma tela a
-   alimenta) vs. acesso do portal do cliente (precisa de policy própria,
-   provavelmente via token assinado). Provedor de autenticação em AWS
-   (Cognito? custom?) ainda não decidido. Existe uma tela de login (`/login`)
-   desenhada, mas sem nenhuma lógica por trás.
+0. ~~Camada de API entre o front-end e o RDS~~ → **[DECIDIDO 2026-09-27]**
+   Lambda + API Gateway, banco Aurora Serverless v2 (variante do RDS) via
+   Data API. Ver [05-implantacao-aws.md](05-implantacao-aws.md).
+1. ~~RLS e modelo de auth~~ → **[DECIDIDO 2026-09-27]** 2 usuários internos
+   (Cognito User Pool próprio) + portal do cliente com conta (e-mail+senha,
+   Cognito User Pool separado) e/ou link assinado por PI (sem conta). CNPJ
+   como credencial foi descartado. Existe uma tela de login (`/login`)
+   desenhada, mas ainda sem nenhuma lógica por trás — isso é
+   implementação, não decisão de arquitetura. Falta ainda: a tabela que
+   mapeia conta do portal → `empresa_id` (proposta em
+   [05-implantacao-aws.md](05-implantacao-aws.md), não aplicada à migração).
 2. **Unidade de medida de `processo_produtos.quantidade`** — hoje é um número
    solto (kg? peças? m³?). Se virar enum/tabela de unidades, é uma coluna
    nova aqui.

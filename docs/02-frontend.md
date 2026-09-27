@@ -193,17 +193,29 @@ forma em toda a app.
   (`fiorini-comex:largura-drawer-processo`). Esse padrão deve continuar mesmo
   depois do back-end existir — são preferências client-side, não pertencem
   ao banco.
-- **Abas do drawer do PI**: Processo, Desembaraço, Financeiro, Digitação de DI
-  (placeholder, "em construção"), Anexos, Comentários. Cada aba reseta para o
-  estado padrão ao trocar de PI (não fica "lembrando" qual aba/seção estava
-  aberta de um PI para outro). A barra de abas rola horizontalmente
-  (`overflow-x-auto` + utility `scrollbar-hide` definida em `src/index.css`,
-  mais um `onWheel` que converte scroll vertical em horizontal), porque em
-  telas estreitas as seis abas não cabem. O `overflow-y-hidden` ao lado **não
-  é redundante**: `overflow-x: auto` sozinho faz o `overflow-y` computar para
-  `auto`, e o `-mb-px` dos botões (que sobrepõe a borda inferior do
-  container) deixa 1px de sobra vertical — o bastante para a faixa arrastar
-  na vertical no toque.
+- **Abas do drawer do PI**: Processo, Transporte, Desembaraço, Financeiro, DI
+  (placeholder, "em construção"), Anexos, Comentários. Transporte e Frete
+  internacional viviam como seções dentro da aba Processo — viraram aba
+  própria (Transporte) por clareza, já que cresceram bastante. Cada aba
+  reseta para o estado padrão ao trocar de PI (não fica "lembrando" qual
+  aba/seção estava aberta de um PI para outro). A barra de abas rola
+  horizontalmente (`overflow-x-auto` + utility `scrollbar-hide` definida em
+  `src/index.css`, mais um `onWheel` que converte scroll vertical em
+  horizontal), porque em telas estreitas as sete abas não cabem. O
+  `overflow-y-hidden` ao lado **não é redundante**: `overflow-x: auto`
+  sozinho faz o `overflow-y` computar para `auto`, e o `-mb-px` dos botões
+  (que sobrepõe a borda inferior do container) deixa 1px de sobra vertical —
+  o bastante para a faixa arrastar na vertical no toque.
+- **Barra de ações dinâmica do Numerário** (aba Financeiro): os botões
+  visíveis (Liberar, Excluir, Registrar pagamento, Enviar por e-mail, Ver
+  Numerário, Desfazer liberação) mudam conforme `numerario.status` — só
+  aparece o que é uma transição válida a partir do estado atual, não uma
+  lista fixa com itens desabilitados. Ver o fluxo completo (estados e
+  motivo de cada transição) em
+  [01-dominio-negocio.md](01-dominio-negocio.md#fluxo-do-numerário-dentro-do-pi-aba-financeiro).
+  "Registrar pagamento" e "Enviar por e-mail" também preenchem
+  `numerarioPagoEm`/`numerarioEnviadoEm` com a data de hoje quando esses
+  campos ainda estão vazios (sem sobrescrever se já preenchidos manualmente).
 - **Drawer do PI redimensionável** (desktop, `min-width: 1024px`): um puxador
   na borda esquerda ajusta a largura entre 420px e 90% da janela, com o valor
   persistido em `localStorage`. Dois detalhes não óbvios na implementação
@@ -289,9 +301,9 @@ do app, não sobre sincronizar dados).
 
 ## O que falta para a Fase 2 (back-end)
 
-1. Provisionar a infraestrutura AWS (RDS Postgres, S3) e decidir a camada de
-   API entre o front-end e o RDS — nada disso está definido ainda, ver
-   [04-schema-banco.md](04-schema-banco.md).
+1. Provisionar a infraestrutura AWS (Aurora Serverless v2, Lambda/API
+   Gateway, S3, Cognito) — arquitetura já decidida, ver
+   [05-implantacao-aws.md](05-implantacao-aws.md), nada provisionado ainda.
 2. Trocar os quatro Context providers de `useState` para buscar/gravar via
    essa API, mantendo os nomes de campo em português já usados no front.
 3. Resolver o gap de "duas fontes de verdade para Empresa" citado acima —

@@ -8,10 +8,14 @@
 ## A empresa
 
 Fiorini Comex é uma **despachante aduaneira** (empresa de importação) operada
-por **uma única pessoa**. O sistema é de uso interno para essa pessoa
-administrar os processos de importação dos clientes dela, mais um **portal do
-cliente** (somente leitura, autenticado por CNPJ ou token — ainda não
-implementado) para os clientes acompanharem o andamento.
+por **uma única pessoa** no dia a dia (mais o desenvolvedor como segundo
+usuário administrativo). O sistema é de uso interno para administrar os
+processos de importação dos clientes, mais um **portal do cliente** (somente
+leitura, ainda não implementado) para os clientes acompanharem o andamento —
+autenticado por e-mail+senha (conta, vê todos os PIs da empresa) ou por um
+link/token vinculado a um PI específico (sem conta); autenticação por CNPJ foi
+descartada. Ver [05-implantacao-aws.md](05-implantacao-aws.md) para o desenho
+completo.
 
 ## Glossário
 
@@ -70,24 +74,41 @@ O Numerário passou de "documento único enviado uma vez" para um **objeto com
 estado próprio**, gerenciado dentro do PI:
 
 ```
-(sem numerário) → Em digitação → Liberado ⇄ (Pago | Cancelado)
+(sem numerário) → Em digitação → Aguardando pagamento ⇄ Pago
+                                          ↓
+                                     (Cancelado — sem gatilho na UI ainda)
 ```
 
-- **Em digitação** (`nao_liberado`): estado inicial ao clicar "Adicionar
-  numerário". Todos os campos (invoice, cotação, tributos/despesas) ficam
-  editáveis livremente.
-- **Liberado**: o usuário confirma que os dados estão corretos e "trava" o
-  numerário — os campos ficam somente-leitura (front-end aplica isso via
-  `<fieldset disabled>`) e o botão "Ver Numerário" (preview/impressão) passa
-  a ficar disponível. É possível desfazer a liberação (com confirmação, pois
-  isso reabre edição de um documento que pode já ter sido enviado ao
-  cliente).
-- **Pago / Cancelado**: estados adicionais alcançáveis a partir de liberado
-  (hoje só populados via dados mockados; o front-end ainda não tem um botão
-  dedicado para essas duas transições — candidato a decisão de produto para
-  o back-end/API expor).
+O front-end (`ProcessoDrawer.tsx`, aba Financeiro) expõe uma **barra de ações
+dinâmica**: os botões visíveis mudam conforme `numerario.status`, refletindo
+só as transições válidas a partir do estado atual (nenhuma tela pede pro
+usuário decidir "qual botão devo clicar" — só aparece o que faz sentido):
+
+- **Em digitação** (`nao_liberado`, rótulo "Em digitação"): estado inicial ao
+  clicar "Adicionar numerário". Todos os campos (invoice, cotação,
+  tributos/despesas) ficam editáveis livremente. Ações disponíveis:
+  **Excluir numerário** e **Liberar numerário**.
+- **Aguardando pagamento** (`liberado` — o valor interno do enum não mudou,
+  só o rótulo exibido, de "Liberado" para "Aguardando pagamento"): o usuário
+  confirma que os dados estão corretos e "trava" o numerário — os campos
+  ficam somente-leitura (`<fieldset disabled>`). Ações disponíveis:
+  **Desfazer liberação** (com confirmação — reabre edição), **Registrar
+  pagamento** (com confirmação — marca como pago e preenche "Data de
+  pagamento" com hoje se estiver vazia), **Enviar por e-mail** (preenche
+  "Data de emissão" com hoje se vazia — envio de e-mail de verdade é Fase 2,
+  hoje só registra a data) e **Ver Numerário** (preview/impressão).
+- **Pago**: fim do fluxo normal. Ações disponíveis: **Enviar por e-mail**
+  (reenvio) e **Ver Numerário**. Não é mais possível desfazer a liberação a
+  partir daqui (evita reabrir edição de algo já pago) nem excluir.
+- **Cancelado**: estado alcançável hoje só via dados mockados — a UI ainda
+  não tem um botão que leve a esse estado (candidato a decisão de produto:
+  cancelar a partir de qual estado? Aguardando pagamento? Também de Pago,
+  como estorno?).
 - Excluir o numerário só é permitido enquanto está **em digitação** (soft
   guard no front-end, deve virar regra de negócio no back-end também).
+- Botão de **logs de auditoria** existe na UI (ícone de histórico, sempre
+  visível) mas abre um placeholder "ainda não implementado" — depende de
+  usuários/autenticação de verdade, que é Fase 2.
 
 Os **tributos/despesas** de um numerário são uma lista livre de itens
 (descrição + valor), mas com um **catálogo compartilhado** de descrições
@@ -141,5 +162,5 @@ confirmação; além disso podem ser renomeados, abertos e baixados.
 - Envio de e-mail (notificação de status, envio do Numerário) — nenhuma
   integração de provedor de e-mail existe ainda.
 - ~~Hospedagem (Hostinger VPS vs. AWS vs. Vercel)~~ → confirmado 2026-09-27:
-  **AWS** (RDS Postgres + S3). Camada de API e provedor de autenticação
-  ainda em aberto.
+  **AWS** (Aurora Serverless v2 + Lambda/API Gateway + S3 + Cognito). Ver
+  [05-implantacao-aws.md](05-implantacao-aws.md).

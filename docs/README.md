@@ -24,7 +24,10 @@ Leia nesta ordem se for a primeira vez no projeto:
    como estão modeladas hoje em TypeScript (`src/types/domain.ts`), com o
    significado de cada campo.
 4. **[04-schema-banco.md](04-schema-banco.md)** — proposta de schema relacional
-   (Postgres/RDS) derivada do modelo de domínio, com diagrama ER.
+   (Postgres/Aurora Serverless v2) derivada do modelo de domínio, com diagrama ER.
+5. **[05-implantacao-aws.md](05-implantacao-aws.md)** — arquitetura de
+   implantação na AWS: compute, os três mecanismos de autenticação, storage,
+   hosting do front-end, IaC.
 
 Se você é um agente de IA, comece por [`../CLAUDE.md`](../CLAUDE.md): resume
 comandos, convenções e as armadilhas conhecidas do código.
@@ -38,19 +41,20 @@ comandos, convenções e as armadilhas conhecidas do código.
   **dados mockados em memória** (`src/data/mock-data.ts` + React Context).
   Não há back-end, banco de dados real, nem autenticação — tudo isso é o
   próximo passo. Um `F5` descarta qualquer alteração feita na sessão.
-- **Hospedagem definida (2026-09-27): AWS** — front-end, **RDS Postgres**
-  (banco) e **S3** (storage/anexos), além do Portal do Cliente. A camada de
-  API entre o front-end e o RDS e o mecanismo de autenticação **ainda não
-  foram decididos** — RDS puro não vem com REST/Auth/RLS-por-JWT prontos
-  como o Supabase (avaliado antes, descartado) oferecia.
-- **Próximo passo** (o motivo desta pasta existir): decidir a camada de API,
-  provisionar o RDS a partir do schema proposto, depois substituir os Context
+- **Arquitetura de implantação decidida (2026-09-27): AWS** — Aurora
+  Serverless v2 (banco, ex-Supabase) + Lambda/API Gateway (API) + S3
+  (storage/anexos) + Cognito (dois User Pools) + link assinado por PI (auth)
+  + Amplify Hosting (front-end e portal do cliente) + CDK (IaC). Ver
+  [05-implantacao-aws.md](05-implantacao-aws.md) para o detalhe completo e o
+  que ainda falta decidir dentro dessa arquitetura.
+- **Próximo passo** (o motivo desta pasta existir): provisionar essa infra
+  via CDK a partir do schema proposto, depois substituir os Context
   providers mockados por chamadas reais a essa API, mantendo os mesmos nomes
   de campo (em português, `camelCase` no front, `snake_case` no banco) para
   minimizar o retrabalho de UI.
 - Existe um rascunho de migração SQL em `db/migrations/`, mantido em
   sincronia com o modelo de domínio atual — ver [04-schema-banco.md](04-schema-banco.md).
-  Nenhuma instância RDS foi provisionada ainda.
+  Nenhuma instância provisionada ainda.
 - Telas prontas: Boas-vindas, Processos de Importação (tabela/cards/kanban +
   drawer do PI), Cadastro de Empresas, BI, Administração (incl. usuários e
   preferências de sistema) e Login (casca de UI). Falta o Portal do Cliente,
