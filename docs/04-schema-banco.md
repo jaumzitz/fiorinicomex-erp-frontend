@@ -60,10 +60,38 @@ migrações incrementais, nunca editar uma já aplicada.
   PI). `processos.numero` continua sempre `PI-{sequência}` no banco; o
   separador é só uma transformação de exibição, nunca deve ser aplicado ao
   dado armazenado nem à geração do próximo número.
+- **`portal_usuarios` (nova, 2026-09-27)** — mapeia uma conta Cognito do
+  portal do cliente (`cognito_sub`) para uma `Empresa` (`empresa_id`), N:1
+  (uma empresa pode ter múltiplas contas — decidido junto com a arquitetura
+  AWS, ver [05-implantacao-aws.md](05-implantacao-aws.md)). Sem
+  contrapartida em `domain.ts`: é infraestrutura de auth, não modelo de
+  negócio.
+- **`processos.link_token_version` (nova, 2026-09-27)** — mecanismo de
+  revogação do link/token de acesso a um PI sem conta (mecanismo 3 de
+  [05-implantacao-aws.md](05-implantacao-aws.md)): incrementar essa coluna
+  invalida de uma vez todos os tokens já emitidos pra aquele PI, sem
+  precisar de uma tabela de blacklist. Também sem contrapartida em
+  `domain.ts` pelo mesmo motivo do item acima.
 - **Enums do Postgres** para todo conjunto fechado de valores (`pi_status`,
   `pi_modal`, `pi_tipo_carga`, `tipo_relacionamento_empresa`,
   `numerario_status`, `separador_numero_pi`) — mapeiam 1:1 para os
-  `as const` arrays do TypeScript.
+  `as const` arrays do TypeScript. `unidade_medida` e
+  `canal_parametrizacao` (2026-09-27, ver abaixo) seguem o mesmo padrão,
+  mas **ainda não têm** contrapartida em `domain.ts` — são campos novos que
+  o front-end (Fase 1, mockado) ainda não modela.
+- **`processo_produtos.unidade_medida` (2026-09-27)** — enum fixo (`kg`,
+  `unidade`, `caixa`, `tonelada`, `litro`, `m3`) em vez de texto livre, pra
+  não deixar "kg"/"Kg"/"quilos" coexistindo pro mesmo conceito. Lista pode
+  crescer — é só adicionar valor ao enum.
+- **`processos.canal_parametrizacao` (2026-09-27)** — nível de fiscalização
+  da Receita Federal (`verde`/`amarelo`/`vermelho`), nullable: só é
+  conhecido depois que a DI é registrada, por isso mora junto dos outros
+  campos de Desembaraço (`numero_di`, `data_ci` etc.), não nas
+  "Informações primárias".
+- **`processos.numero` agora tem `default`** (2026-09-27) —
+  `'PI-' || nextval('pi_numero_seq')`. `nextval()` é atômico no Postgres,
+  então substitui o cálculo client-side `PI-{maior + 1}` (que só
+  funcionava porque a Fase 1 não tem escrita concorrente).
 - **`exportador_id` é FK opcional para `empresas`** (resolvido 2026-08-15) —
   ver a nota em [03-modelo-dominio.md](03-modelo-dominio.md) sobre como o
   front-end resolve isso sem exigir cadastro prévio (cria a empresa
@@ -131,12 +159,21 @@ erDiagram
     }
 
     USUARIOS {
-        uuid id PK_FK
+        uuid id PK
         text nome
         text email
         text cargo
         timestamptz criado_em
         boolean ativo
+    }
+
+    PORTAL_USUARIOS {
+        uuid id PK
+        uuid empresa_id FK
+        text cognito_sub UK
+        text email
+        boolean ativo
+        timestamptz criado_em
     }
 
     PREFERENCIAS_SISTEMA {
@@ -172,6 +209,8 @@ erDiagram
         date data_siscargo
         date data_icms
         date data_encerramento
+        enum canal_parametrizacao
+        integer link_token_version
         timestamptz criado_em
         timestamptz atualizado_em
     }
@@ -186,6 +225,7 @@ erDiagram
         uuid processo_id FK
         text nome
         numeric quantidade
+        enum unidade_medida
     }
 
     NUMERARIOS {
@@ -234,6 +274,7 @@ erDiagram
 
     EMPRESAS ||--o{ EMPRESA_RELACIONAMENTOS : "possui papel"
     EMPRESAS ||--o{ CONTATOS_EMPRESA : "possui"
+    EMPRESAS ||--o{ PORTAL_USUARIOS : "tem contas de portal"
     EMPRESAS ||--o{ PROCESSOS : "e cliente em (cliente_id)"
     EMPRESAS ||--o{ PROCESSOS : "e fornecedor aceito em (fornecedor_frete_id)"
     EMPRESAS ||--o{ PROCESSOS : "e exportador em (exportador_id)"
@@ -248,11 +289,13 @@ erDiagram
 ```
 
 > `USUARIOS.id` **não** referencia mais `auth.users` (isso era Supabase Auth;
-> o provedor agora é Cognito — ver [05-implantacao-aws.md](05-implantacao-aws.md)
-> — mas a migração ainda não foi atualizada para mapear `usuarios` a um
-> `cognito_sub`, mesma pendência do futuro `portal_usuarios`). `EMPRESA_CONFIG`
-> e `PREFERENCIAS_SISTEMA` são tabelas singleton (uma única linha, reforçada
-> por índice único parcial) — não se relacionam com mais nada.
+> o provedor agora é Cognito — ver [05-implantacao-aws.md](05-implantacao-aws.md)).
+> A migração ainda não foi atualizada para mapear `usuarios` a um
+> `cognito_sub` do User Pool interno, ao contrário de `PORTAL_USUARIOS`, que
+> já nasce com essa coluna (User Pool separado, do portal do cliente).
+> `EMPRESA_CONFIG` e `PREFERENCIAS_SISTEMA` são tabelas singleton (uma única
+> linha, reforçada por índice único parcial) — não se relacionam com mais
+> nada.
 
 ## Mapeamento tipo TypeScript → tabela
 
@@ -270,6 +313,11 @@ erDiagram
 | `Comentario` | `comentarios` |
 | `Anexo` | `anexos` |
 
+`portal_usuarios` não tem uma linha aqui porque não é um tipo de domínio de
+negócio — é uma tabela de infraestrutura de auth (mapeia uma conta Cognito do
+portal do cliente para uma `Empresa`), então não tem contrapartida em
+`domain.ts`.
+
 ## O que ainda falta decidir antes de provisionar
 
 0. ~~Camada de API entre o front-end e o RDS~~ → **[DECIDIDO 2026-09-27]**
@@ -277,23 +325,35 @@ erDiagram
    Data API. Ver [05-implantacao-aws.md](05-implantacao-aws.md).
 1. ~~RLS e modelo de auth~~ → **[DECIDIDO 2026-09-27]** 2 usuários internos
    (Cognito User Pool próprio) + portal do cliente com conta (e-mail+senha,
-   Cognito User Pool separado) e/ou link assinado por PI (sem conta). CNPJ
-   como credencial foi descartado. Existe uma tela de login (`/login`)
-   desenhada, mas ainda sem nenhuma lógica por trás — isso é
-   implementação, não decisão de arquitetura. Falta ainda: a tabela que
-   mapeia conta do portal → `empresa_id` (proposta em
-   [05-implantacao-aws.md](05-implantacao-aws.md), não aplicada à migração).
-2. **Unidade de medida de `processo_produtos.quantidade`** — hoje é um número
-   solto (kg? peças? m³?). Se virar enum/tabela de unidades, é uma coluna
-   nova aqui.
-3. **Onde entra `canal de parametrização`** (verde/amarelo/vermelho da
-   Receita Federal) — citado no domínio de negócio mas ainda sem campo no
-   front-end nem no schema.
-4. **Confirmar semântica de `data_ci` e `data_siscargo`** antes de considerar
-   esses nomes definitivos (ver [01-dominio-negocio.md](01-dominio-negocio.md)).
-5. **Layout de keys no bucket S3** para `anexos.storage_path` e as duas
-   imagens de `empresa_config` (logo/ícone) — convenção de path ainda não
-   definida.
-6. **Geração do número do PI** (`processos.numero`) — hoje o front calcula
-   `PI-{maior + 1}` client-side; no banco precisa virar sequence ou função
-   com lock para não colidir.
+   múltiplas contas por empresa, Cognito User Pool separado) e/ou link
+   assinado por PI (sem conta). CNPJ como credencial foi descartado.
+   Enforcement de acesso é no código da API, não RLS. Token do link expira
+   30 dias após `data_encerramento`/cancelamento (avaliado a cada request,
+   não como `exp` fixo no JWT) e é revogável via `link_token_version`. A
+   tabela `portal_usuarios` e a coluna `processos.link_token_version` já
+   estão na migração — ver [05-implantacao-aws.md](05-implantacao-aws.md).
+   Existe uma tela de login (`/login`) desenhada, mas ainda sem nenhuma
+   lógica por trás — isso é implementação, não decisão de arquitetura.
+2. ~~Unidade de medida de `processo_produtos.quantidade`~~ → **[DECIDIDO
+   2026-09-27]** enum fixo `unidade_medida` (`kg`, `unidade`, `caixa`,
+   `tonelada`, `litro`, `m3`), coluna nova em `processo_produtos`, default
+   `'unidade'`. Lista pode crescer depois — é só adicionar valor ao enum.
+3. ~~Onde entra `canal de parametrização`~~ → **[DECIDIDO 2026-09-27]** aba
+   Desembaraço, junto de `numero_di`/`data_ci`/etc. — só é conhecido depois
+   que a DI é registrada. Enum `canal_parametrizacao` (`verde`, `amarelo`,
+   `vermelho`), coluna nullable em `processos`.
+4. ~~Confirmar semântica de `data_ci` e `data_siscargo`~~ → **[CONFIRMADO
+   2026-09-27]** a semântica documentada em
+   [01-dominio-negocio.md](01-dominio-negocio.md) está correta, nomes
+   definitivos.
+5. ~~Layout de keys no bucket S3~~ → **[DECIDIDO 2026-09-27]** anexos em
+   `anexos/{processo_id}/{anexo_id}-{nome_arquivo}`; logo/ícone da empresa
+   em paths fixos `empresa-config/logo.{ext}` e `empresa-config/icone.{ext}`
+   (é singleton, não precisa de uuid) — cache velho após substituição se
+   resolve com versionamento do bucket, não mudando a key. Ver
+   [05-implantacao-aws.md](05-implantacao-aws.md).
+6. ~~Geração do número do PI~~ → **[DECIDIDO 2026-09-27]** `sequence`
+   (`pi_numero_seq`) do Postgres como default da coluna
+   (`default ('PI-' || nextval('pi_numero_seq'))`) — atômico, substitui o
+   cálculo client-side `PI-{maior + 1}` que só funcionava por não haver
+   escrita concorrente na Fase 1. Já aplicado na migração.

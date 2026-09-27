@@ -30,7 +30,7 @@ completo.
 | **LPCO** (ex-"LI") | Licença/Permissão/Certificado/Outros — autorização prévia exigida para produtos sujeitos a controle de órgão anuente (Anvisa, MAPA, Inmetro etc.); nem todo PI precisa |
 | **Recinto** | Local (porto/aeroporto/terminal) onde a carga chega e é feita a análise documental que libera a retirada |
 | **Numerário** | Documento com a estimativa de custos (frete + tributos) enviado ao cliente ~5–7 dias antes da chegada da carga, para pagamento antecipado. Estrutura: dados do processo (cliente, produto, invoice, exportador, cotação da moeda) + tabela de tributos/despesas + total + dados bancários para pagamento. Formato de saída alvo: **PDF** (hoje é uma planilha Excel manual) |
-| **Canal de parametrização** | Nível de fiscalização aplicado pela Receita Federal na análise documental (verde/amarelo/vermelho) — ainda não modelado no sistema |
+| **Canal de parametrização** | Nível de fiscalização aplicado pela Receita Federal na análise documental (verde/amarelo/vermelho). Modelado no schema (2026-09-27) como `processos.canal_parametrizacao`, na aba Desembaraço — só conhecido depois que a DI é registrada. Ainda não existe no front-end mockado (`domain.ts`), que é Fase 1 |
 | **FCL / LCL** | Só carga marítima. FCL = container fechado exclusivo do cliente. LCL = carga consolidada, container dividido com outros embarcadores |
 | **Presença de carga** | Registro no Siscomex, feito pelo recinto, confirmando chegada física da carga — pré-requisito para registrar a DI |
 | **Fornecedores de frete** | Prestadores de frete internacional cotados pela Fiorini. Lista fixa histórica: BDN, PRO-ALLOG, TRANSIT, AGL — hoje modelados como `Empresa` com `tiposRelacionamento` incluindo `fornecedor_frete`, não mais uma lista hardcoded |
@@ -123,10 +123,12 @@ já o usam.
 ## Produtos do PI
 
 Cada PI lista as mercadorias importadas como **nome + quantidade** (lista
-livre, editável in-place na seção Produtos do drawer). A quantidade ainda
-**não tem unidade de medida** associada — decidir isso é um item em aberto
-para o back-end. O nome dos produtos é o que aparece no campo "Produto" do
-numerário.
+livre, editável in-place na seção Produtos do drawer). A quantidade no
+front-end mockado (Fase 1) ainda não tem unidade de medida associada; no
+schema (2026-09-27) já existe `processo_produtos.unidade_medida`, um enum
+fixo (`kg`, `unidade`, `caixa`, `tonelada`, `litro`, `m3`) — falta só chegar
+no front-end quando a Fase 2 substituir os dados mockados. O nome dos
+produtos é o que aparece no campo "Produto" do numerário.
 
 ## Comentários e anexos
 
