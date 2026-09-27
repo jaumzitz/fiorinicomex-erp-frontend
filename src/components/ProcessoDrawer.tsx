@@ -11,6 +11,10 @@ import {
   X,
   Construction,
   Trash2,
+  Mail,
+  CircleDollarSign,
+  History,
+  Undo,
 } from 'lucide-react'
 
 import {
@@ -53,6 +57,7 @@ import { hoje, formatarData } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useProcessos } from '@/store/ProcessosContext'
+import { useEmpresaConfig } from '@/store/EmpresaConfigContext'
 import { useEmpresasCadastradas } from '@/store/EmpresasCadastradasContext'
 import { useTributosCatalogo } from '@/store/TributosCatalogoContext'
 import { usePreferencias } from '@/store/PreferenciasContext'
@@ -396,9 +401,17 @@ export function ProcessoDrawer({
   } = useProcessos()
   const { empresas, criarEmpresa } = useEmpresasCadastradas()
   const { tributosCatalogo, adicionarTributoCatalogo } = useTributosCatalogo()
+  const { empresa: empresaConfig } = useEmpresaConfig()
   const [numerarioAberto, setNumerarioAberto] = useState(false)
   const [confirmarDesfazerAberto, setConfirmarDesfazerAberto] = useState(false)
   const [confirmarExcluirAberto, setConfirmarExcluirAberto] = useState(false)
+  const [confirmarPagamentoAberto, setConfirmarPagamentoAberto] = useState(false)
+  const [auditoriaAberto, setAuditoriaAberto] = useState(false)
+  const [emailAberto, setEmailAberto] = useState(false)
+  const [emailContatoId, setEmailContatoId] = useState('outro')
+  const [emailDestinoCustom, setEmailDestinoCustom] = useState('')
+  const [emailAssunto, setEmailAssunto] = useState('')
+  const [emailCorpo, setEmailCorpo] = useState('')
   const [anexoParaExcluir, setAnexoParaExcluir] = useState<Anexo | null>(null)
   const [novoComentario, setNovoComentario] = useState('')
   const [comentarioVisivel, setComentarioVisivel] = useState(false)
@@ -489,6 +502,7 @@ export function ProcessoDrawer({
   if (!processo) return null
 
   const cliente = getCliente(processo.clienteId)
+  const contatosComEmail = (cliente?.contatos ?? []).filter((c) => c.ativo && c.email)
   const fornecedoresFrete = empresas.filter(
     (e) => e.ativo && e.tiposRelacionamento.includes('fornecedor_frete'),
   )
@@ -534,6 +548,10 @@ export function ProcessoDrawer({
   }
   const totalTributos = numerarioAtual.tributos.reduce((soma, item) => soma + item.valor, 0)
   const numerarioBloqueado = numerarioAtual.status !== 'nao_liberado'
+  const numerarioEmDigitacao = numerarioAtual.status === 'nao_liberado'
+  const numerarioAguardandoPagamento = numerarioAtual.status === 'liberado'
+  const numerarioVisivelParaCliente =
+    numerarioAtual.status === 'liberado' || numerarioAtual.status === 'pago'
 
   function patchNumerario(campo: Partial<Numerario>) {
     atualizarProcesso(processo!.id, { numerario: { ...numerarioAtual, ...campo } })
@@ -574,6 +592,44 @@ export function ProcessoDrawer({
 
   function desfazerLiberacaoNumerario() {
     patchNumerario({ status: 'nao_liberado' })
+  }
+
+  function registrarPagamento() {
+    atualizarProcesso(processo!.id, {
+      numerario: { ...numerarioAtual, status: 'pago' },
+      numerarioPagoEm: processo!.numerarioPagoEm ?? hoje(),
+    })
+  }
+
+  function abrirEmailNumerario() {
+    const statusPago = numerarioAtual.status === 'pago'
+    setEmailContatoId(contatosComEmail[0]?.id ?? 'outro')
+    setEmailDestinoCustom('')
+    setEmailAssunto(
+      `Numerário ${statusPago ? 'pago' : 'aguardando pagamento'} (${formatarPi(processo!.numero)})`,
+    )
+    setEmailCorpo(
+      `Olá${cliente ? `, ${cliente.nomeFantasia}` : ''}!\n\n` +
+        `Segue o numerário do processo ${formatarPi(processo!.numero)}` +
+        `${statusPago ? ', referente ao pagamento já registrado.' : ' para pagamento.'}\n` +
+        `Valor total: ${totalTributos.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}.\n\n` +
+        `Qualquer dúvida, estamos à disposição.\n\n` +
+        `Atenciosamente,\n${empresaConfig.nome}`,
+    )
+    setEmailAberto(true)
+  }
+
+  const emailDestinoFinal =
+    emailContatoId === 'outro'
+      ? emailDestinoCustom.trim()
+      : (contatosComEmail.find((c) => c.id === emailContatoId)?.email ?? '')
+
+  function confirmarEnvioEmail() {
+    if (!emailDestinoFinal) return
+    atualizarProcesso(processo!.id, {
+      numerarioEnviadoEm: processo!.numerarioEnviadoEm ?? hoje(),
+    })
+    setEmailAberto(false)
   }
 
   function excluirNumerario() {
@@ -714,7 +770,7 @@ export function ProcessoDrawer({
 
         {processo.numerario && (
           <Dialog open={numerarioAberto} onOpenChange={setNumerarioAberto}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Numerário — {formatarPi(processo.numero)}</DialogTitle>
                 <DialogDescription>
@@ -776,6 +832,117 @@ export function ProcessoDrawer({
                 }}
               >
                 Excluir numerário
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={confirmarPagamentoAberto} onOpenChange={setConfirmarPagamentoAberto}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Registrar pagamento?</DialogTitle>
+              <DialogDescription>
+                O numerário passa para o status "Pago". Se a data de pagamento ainda
+                não estiver preenchida, hoje será usada.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmarPagamentoAberto(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  registrarPagamento()
+                  setConfirmarPagamentoAberto(false)
+                }}
+              >
+                Registrar pagamento
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={auditoriaAberto} onOpenChange={setAuditoriaAberto}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Logs de auditoria</DialogTitle>
+              <DialogDescription>
+                Histórico de alterações do numerário (quem mudou o quê e quando).
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <Construction className="text-muted-foreground size-8" />
+              <p className="text-muted-foreground text-sm">
+                Auditoria ainda não implementada — depende de usuários/autenticação
+                de verdade na Fase 2.
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={emailAberto} onOpenChange={setEmailAberto}>
+          <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Enviar numerário por e-mail</DialogTitle>
+              <DialogDescription>
+                {formatarPi(processo.numero)} — {cliente?.nomeFantasia}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-muted-foreground text-xs font-normal">
+                  Destinatário
+                </Label>
+                <Select value={emailContatoId} onValueChange={setEmailContatoId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contatosComEmail.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome} — {c.email}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="outro">Outro e-mail...</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {emailContatoId === 'outro' && (
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-muted-foreground text-xs font-normal">
+                    E-mail de destino
+                  </Label>
+                  <Input
+                    type="email"
+                    placeholder="nome@empresa.com"
+                    value={emailDestinoCustom}
+                    onChange={(e) => setEmailDestinoCustom(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-muted-foreground text-xs font-normal">Assunto</Label>
+                <Input value={emailAssunto} onChange={(e) => setEmailAssunto(e.target.value)} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-muted-foreground text-xs font-normal">Mensagem</Label>
+                <Textarea
+                  rows={8}
+                  value={emailCorpo}
+                  onChange={(e) => setEmailCorpo(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEmailAberto(false)}>
+                Cancelar
+              </Button>
+              <Button disabled={!emailDestinoFinal} onClick={confirmarEnvioEmail}>
+                <Mail className="size-4" />
+                Enviar
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1163,7 +1330,7 @@ export function ProcessoDrawer({
         {abaAtiva === 'financeiro' && processo.numerario && (
           <>
           <div className="flex flex-col gap-4 px-5 py-5">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">Numerário</span>
                 <span className="inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
@@ -1176,48 +1343,88 @@ export function ProcessoDrawer({
                   {NUMERARIO_STATUS_LABELS[numerarioAtual.status]}
                 </span>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                {!numerarioBloqueado && (
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Secundárias — corretivas/meta, sem relação direta com o fluxo de trabalho. Só ícone. */}
+                <div className="flex items-center gap-1">
+                  {numerarioEmDigitacao && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive size-8"
+                      title="Excluir numerário"
+                      onClick={() => setConfirmarExcluirAberto(true)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  )}
+                  {numerarioAguardandoPagamento && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="size-8"
+                      title="Desfazer liberação"
+                      onClick={() => setConfirmarDesfazerAberto(true)}
+                    >
+                      <Undo className="size-4" />
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     size="icon"
-                    variant="outline"
-                    className="border-destructive text-destructive shadow-xs hover:bg-destructive/10 hover:text-destructive size-8"
-                    onClick={() => setConfirmarExcluirAberto(true)}
+                    variant="ghost"
+                    className="size-8"
+                    title="Logs de auditoria"
+                    onClick={() => setAuditoriaAberto(true)}
                   >
-                    <Trash2 className="size-4" />
+                    <History className="size-4" />
                   </Button>
+                </div>
+
+                {(numerarioEmDigitacao || numerarioVisivelParaCliente) && (
+                  <div className="bg-border h-5 w-px" />
                 )}
-                {numerarioBloqueado ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setConfirmarDesfazerAberto(true)}
-                  >
-                    Desfazer liberação
-                  </Button>
-                ) : (
-                  <Button size="sm" onClick={liberarNumerario}>
-                    Liberar numerário
-                  </Button>
-                )}
-                {numerarioBloqueado && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setNumerarioAberto(true)}
-                  >
-                    <FileText className="size-4" />
-                    Ver Numerário
-                  </Button>
-                )}
+
+                {/* Fluxo de trabalho — digitar → liberar → enviar → pagar. */}
+                <div className="flex items-center gap-2">
+                  {numerarioVisivelParaCliente && (
+                    <Button size="sm" variant="outline" onClick={abrirEmailNumerario}>
+                      <Mail className="size-4" />
+                      Enviar por e-mail
+                    </Button>
+                  )}
+                  {numerarioVisivelParaCliente && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setNumerarioAberto(true)}
+                    >
+                      <FileText className="size-4" />
+                      Ver Numerário
+                    </Button>
+                  )}
+                  {numerarioEmDigitacao && (
+                    <Button size="sm" onClick={liberarNumerario}>
+                      Liberar numerário
+                    </Button>
+                  )}
+                  {numerarioAguardandoPagamento && (
+                    <Button size="sm" onClick={() => setConfirmarPagamentoAberto(true)}>
+                      <CircleDollarSign className="size-4" />
+                      Registrar pagamento
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 
             {numerarioBloqueado && (
               <p className="text-muted-foreground text-xs">
-                Numerário liberado — os dados abaixo não podem mais ser alterados.
-                Clique em "Desfazer liberação" para ajustar.
+                {numerarioAguardandoPagamento
+                  ? 'Numerário liberado — os dados abaixo não podem mais ser alterados. Clique em "Desfazer liberação" para ajustar.'
+                  : 'Numerário pago — os dados abaixo não podem mais ser alterados.'}
               </p>
             )}
 
@@ -1235,8 +1442,6 @@ export function ProcessoDrawer({
                 onChange={(v) => patch('numerarioPagoEm', v)}
               />
             </div>
-
-            <Separator />
 
             <fieldset disabled={numerarioBloqueado} className="contents">
               <div className="grid grid-cols-2 gap-x-4 gap-y-4">

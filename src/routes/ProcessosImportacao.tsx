@@ -246,23 +246,7 @@ export default function ProcessosImportacao() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-              <SelectTrigger className="w-full sm:w-52">
-                <SelectValue placeholder="Estágio" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os estágios</SelectItem>
-                {PI_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {PI_STATUS_LABELS[status]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <ComboboxCliente value={clienteFiltro} onChange={setClienteFiltro} opcoes={clientesUnicos} />
-          </div>
+          <ComboboxCliente value={clienteFiltro} onChange={setClienteFiltro} opcoes={clientesUnicos} />
 
           {isDesktop && (
             <div className="bg-muted inline-flex items-center gap-0.5 self-start rounded-md p-0.5 sm:ml-auto">
@@ -286,12 +270,12 @@ export default function ProcessosImportacao() {
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setStatusFiltro('todos')}
             className={cn(
-              'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+              'cursor-pointer rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
               statusFiltro === 'todos'
                 ? 'border-foreground bg-foreground text-background'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -305,7 +289,7 @@ export default function ProcessosImportacao() {
               type="button"
               onClick={() => setStatusFiltro(statusFiltro === status ? 'todos' : status)}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
                 statusFiltro === status
                   ? 'border-foreground bg-accent text-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
