@@ -75,7 +75,23 @@ migrações incrementais, nunca editar uma já aplicada.
 - **Enums do Postgres** para todo conjunto fechado de valores (`pi_status`,
   `pi_modal`, `pi_tipo_carga`, `tipo_relacionamento_empresa`,
   `numerario_status`, `separador_numero_pi`) — mapeiam 1:1 para os
-  `as const` arrays do TypeScript.
+  `as const` arrays do TypeScript. `unidade_medida` e
+  `canal_parametrizacao` (2026-09-27, ver abaixo) seguem o mesmo padrão,
+  mas **ainda não têm** contrapartida em `domain.ts` — são campos novos que
+  o front-end (Fase 1, mockado) ainda não modela.
+- **`processo_produtos.unidade_medida` (2026-09-27)** — enum fixo (`kg`,
+  `unidade`, `caixa`, `tonelada`, `litro`, `m3`) em vez de texto livre, pra
+  não deixar "kg"/"Kg"/"quilos" coexistindo pro mesmo conceito. Lista pode
+  crescer — é só adicionar valor ao enum.
+- **`processos.canal_parametrizacao` (2026-09-27)** — nível de fiscalização
+  da Receita Federal (`verde`/`amarelo`/`vermelho`), nullable: só é
+  conhecido depois que a DI é registrada, por isso mora junto dos outros
+  campos de Desembaraço (`numero_di`, `data_ci` etc.), não nas
+  "Informações primárias".
+- **`processos.numero` agora tem `default`** (2026-09-27) —
+  `'PI-' || nextval('pi_numero_seq')`. `nextval()` é atômico no Postgres,
+  então substitui o cálculo client-side `PI-{maior + 1}` (que só
+  funcionava porque a Fase 1 não tem escrita concorrente).
 - **`exportador_id` é FK opcional para `empresas`** (resolvido 2026-08-15) —
   ver a nota em [03-modelo-dominio.md](03-modelo-dominio.md) sobre como o
   front-end resolve isso sem exigir cadastro prévio (cria a empresa
@@ -193,6 +209,7 @@ erDiagram
         date data_siscargo
         date data_icms
         date data_encerramento
+        enum canal_parametrizacao
         integer link_token_version
         timestamptz criado_em
         timestamptz atualizado_em
@@ -208,6 +225,7 @@ erDiagram
         uuid processo_id FK
         text nome
         numeric quantidade
+        enum unidade_medida
     }
 
     NUMERARIOS {
@@ -316,17 +334,26 @@ portal do cliente para uma `Empresa`), então não tem contrapartida em
    estão na migração — ver [05-implantacao-aws.md](05-implantacao-aws.md).
    Existe uma tela de login (`/login`) desenhada, mas ainda sem nenhuma
    lógica por trás — isso é implementação, não decisão de arquitetura.
-2. **Unidade de medida de `processo_produtos.quantidade`** — hoje é um número
-   solto (kg? peças? m³?). Se virar enum/tabela de unidades, é uma coluna
-   nova aqui.
-3. **Onde entra `canal de parametrização`** (verde/amarelo/vermelho da
-   Receita Federal) — citado no domínio de negócio mas ainda sem campo no
-   front-end nem no schema.
-4. **Confirmar semântica de `data_ci` e `data_siscargo`** antes de considerar
-   esses nomes definitivos (ver [01-dominio-negocio.md](01-dominio-negocio.md)).
-5. **Layout de keys no bucket S3** para `anexos.storage_path` e as duas
-   imagens de `empresa_config` (logo/ícone) — convenção de path ainda não
-   definida.
-6. **Geração do número do PI** (`processos.numero`) — hoje o front calcula
-   `PI-{maior + 1}` client-side; no banco precisa virar sequence ou função
-   com lock para não colidir.
+2. ~~Unidade de medida de `processo_produtos.quantidade`~~ → **[DECIDIDO
+   2026-09-27]** enum fixo `unidade_medida` (`kg`, `unidade`, `caixa`,
+   `tonelada`, `litro`, `m3`), coluna nova em `processo_produtos`, default
+   `'unidade'`. Lista pode crescer depois — é só adicionar valor ao enum.
+3. ~~Onde entra `canal de parametrização`~~ → **[DECIDIDO 2026-09-27]** aba
+   Desembaraço, junto de `numero_di`/`data_ci`/etc. — só é conhecido depois
+   que a DI é registrada. Enum `canal_parametrizacao` (`verde`, `amarelo`,
+   `vermelho`), coluna nullable em `processos`.
+4. ~~Confirmar semântica de `data_ci` e `data_siscargo`~~ → **[CONFIRMADO
+   2026-09-27]** a semântica documentada em
+   [01-dominio-negocio.md](01-dominio-negocio.md) está correta, nomes
+   definitivos.
+5. ~~Layout de keys no bucket S3~~ → **[DECIDIDO 2026-09-27]** anexos em
+   `anexos/{processo_id}/{anexo_id}-{nome_arquivo}`; logo/ícone da empresa
+   em paths fixos `empresa-config/logo.{ext}` e `empresa-config/icone.{ext}`
+   (é singleton, não precisa de uuid) — cache velho após substituição se
+   resolve com versionamento do bucket, não mudando a key. Ver
+   [05-implantacao-aws.md](05-implantacao-aws.md).
+6. ~~Geração do número do PI~~ → **[DECIDIDO 2026-09-27]** `sequence`
+   (`pi_numero_seq`) do Postgres como default da coluna
+   (`default ('PI-' || nextval('pi_numero_seq'))`) — atômico, substitui o
+   cálculo client-side `PI-{maior + 1}` que só funcionava por não haver
+   escrita concorrente na Fase 1. Já aplicado na migração.

@@ -184,9 +184,19 @@ create type pi_modal as enum (
 
 create type pi_tipo_carga as enum ('FCL', 'LCL');
 
+-- Nível de fiscalização aplicado pela Receita Federal na análise documental
+-- (2026-09-27) — conhecido só depois que a DI é registrada, por isso mora
+-- junto dos outros campos de Desembaraço abaixo, e é nullable até lá.
+create type canal_parametrizacao as enum ('verde', 'amarelo', 'vermelho');
+
+-- (2026-09-27) nextval() é atômico — substitui o cálculo client-side de
+-- "PI-{maior número atual + 1}", que só funcionava por não haver escrita
+-- concorrente na Fase 1.
+create sequence pi_numero_seq;
+
 create table processos (
   id uuid primary key default gen_random_uuid(),
-  numero text not null unique,
+  numero text not null unique default ('PI-' || nextval('pi_numero_seq')),
   cliente_id uuid not null references empresas(id),
   status pi_status not null default 'aberto',
   modal pi_modal not null,
@@ -224,6 +234,8 @@ create table processos (
   data_siscargo date,
   data_icms date,
   data_encerramento date,
+  -- Só é conhecido depois que a DI é registrada (2026-09-27).
+  canal_parametrizacao canal_parametrizacao,
 
   -- Portal do cliente (2026-09-27): revogação do link/token de acesso a
   -- este PI sem conta (ver docs/05-implantacao-aws.md). Incrementar
@@ -254,13 +266,16 @@ create table processo_fornecedores_cotados (
   primary key (processo_id, empresa_id)
 );
 
+-- (2026-09-27) Enum fixo em vez de texto livre — evita "kg"/"Kg"/"quilos"
+-- coexistindo pro mesmo conceito.
+create type unidade_medida as enum ('kg', 'unidade', 'caixa', 'tonelada', 'litro', 'm3');
+
 create table processo_produtos (
   id uuid primary key default gen_random_uuid(),
   processo_id uuid not null references processos(id) on delete cascade,
   nome text not null,
-  -- Quantidade numérica sem unidade de medida associada ainda (kg, peças,
-  -- m³...) — decisão em aberto, ver docs/04-schema-banco.md.
-  quantidade numeric(14, 3) not null default 1
+  quantidade numeric(14, 3) not null default 1,
+  unidade_medida unidade_medida not null default 'unidade'
 );
 
 create index processo_produtos_processo_id_idx on processo_produtos(processo_id);

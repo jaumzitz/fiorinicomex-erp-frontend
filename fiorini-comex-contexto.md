@@ -235,7 +235,11 @@ Como pedido, aqui vão pontos que fazem sentido dado o porte da operação. São
       2026-09-27: **AWS** (Aurora Serverless v2 + S3 + Lambda/API Gateway +
       Cognito, ver `docs/05-implantacao-aws.md`)
 - [ ] Reenviar "documentação adicional" — o briefing original parece ter sido cortado antes de anexá-la
-- [ ] Confirmar significado dos campos da planilha atual (seção 2.1), em especial **CI** e **SISCARGO**
+- [x] ~~Confirmar significado dos campos da planilha atual (seção 2.1), em especial **CI** e **SISCARGO**~~ → confirmado 2026-09-27: a semântica documentada (`docs/01-dominio-negocio.md`) está correta
 - [x] ~~Decidir onde os campos da seção 2.1 entram no modelo do PI e nas telas~~ → implementado 2026-09-18 (sob as hipóteses da seção 2.1, que continuam a confirmar): LI → `licencaImportacao` (rotulado "LPCO"), ETD → `previsaoEmbarque`, ETA → `previsaoChegada`, HBL/HAWB → `hblHawb`, LCL/FCL → `tipoCarga`, CE → `conhecimentoEmbarque`, MAPA → `dataLiberacaoMapa`, PRESENCA → `dataPresencaCarga` (todos na seção **Transporte** da aba Processo); DI → `numeroDi`, CI → `dataCi`, SISCARGO → `dataSiscargo`, ICMS → `dataIcms` (aba própria **Desembaraço**). Ver `docs/03-modelo-dominio.md`
-- [ ] Definir unidade de medida da quantidade de produto (hoje o PI guarda nome + quantidade numérica, sem unidade)
-- [ ] Definir onde entra o **canal de parametrização** no modelo do PI (confirmado como conceito, mas ainda sem campo)
+- [x] ~~Definir unidade de medida da quantidade de produto~~ → decidido
+      2026-09-27: enum fixo `unidade_medida` (kg/unidade/caixa/tonelada/
+      litro/m3) — ver `docs/04-schema-banco.md`
+- [x] ~~Definir onde entra o **canal de parametrização** no modelo do PI~~ →
+      decidido 2026-09-27: aba Desembaraço, campo `canal_parametrizacao`
+      (verde/amarelo/vermelho), só conhecido depois do registro da DI

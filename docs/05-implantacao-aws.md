@@ -97,9 +97,28 @@ precisa de disciplina é pequena o suficiente pra um helper compartilhado
 não SQL solto por handler) cobrir sem a complexidade extra de simular sessão
 por request na Data API.
 
+## Layout de keys no S3 (decidido 2026-09-27)
+
+- Anexos do PI: `anexos/{processo_id}/{anexo_id}-{nome_arquivo}` — prefixado
+  por `processo_id`, facilita listar/limpar tudo de um PI de uma vez.
+- Logo/ícone da empresa (`empresa_config`, singleton): path fixo
+  `empresa-config/logo.{ext}` e `empresa-config/icone.{ext}` — não precisa
+  de uuid, só existe uma linha. Cache velho após substituição se resolve com
+  versionamento do bucket, não mudando a key a cada upload.
+
+## Geração do Numerário em PDF (decidido 2026-09-27)
+
+Headless Chromium (Playwright/Puppeteer) rodando num Lambda via layer (ex.
+`@sparticuz/chromium`), reaproveitando o **mesmo HTML/CSS** de
+`NumerarioPreview.tsx` — não redesenhar o layout numa lib de PDF
+(pdf-lib/PDFKit), que criaria um segundo template pra manter em paralelo do
+que já existe.
+
 ## O que ainda falta decidir
 
-Pendências que já existiam antes da escolha de hospedagem (não mudam com
-AWS): layout de keys no S3, unidade de medida de `processo_produtos`, canal
-de parametrização, geração do Numerário em PDF, envio de e-mail — ver
-[04-schema-banco.md](04-schema-banco.md) e [02-frontend.md](02-frontend.md).
+- **Envio de e-mail**: provedor já definido fora deste plano (Google
+  Workspace, ver `fiorini-comex-contexto.md`), mas a implementação (quando
+  enviar, como autenticar o envio, template) foi explicitamente deixada
+  para depois — não bloqueia o resto da arquitetura.
+- Pendências puramente de domínio/UI que não mudam com a escolha de AWS —
+  ver [02-frontend.md](02-frontend.md), "O que falta para a Fase 2".

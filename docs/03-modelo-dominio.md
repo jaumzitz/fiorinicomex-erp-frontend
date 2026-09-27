@@ -132,10 +132,11 @@ onde cada campo aparece.
 | `dataPresencaCarga` | string (data) | não | Processo › Transporte | |
 | `produtos` | `Produto[]` | sim (pode ser vazio) | Processo › Produtos | 1:N — ver seção própria abaixo |
 | `numeroDi` | string | não | Desembaraço | |
-| `dataCi` | string (data) | não | Desembaraço | significado não 100% confirmado, ver domínio de negócio |
+| `dataCi` | string (data) | não | Desembaraço | semântica confirmada 2026-09-27, ver domínio de negócio |
 | `dataSiscargo` | string (data) | não | Desembaraço | idem |
 | `dataIcms` | string (data) | não | Desembaraço | "Pagamento ICMS" |
 | `dataEncerramento` | string (data) | não | Desembaraço | |
+| — *(ainda não existe em `domain.ts`)* | — | — | Desembaraço | `canal_parametrizacao` já existe no schema (2026-09-27, ver [04-schema-banco.md](04-schema-banco.md)) — verde/amarelo/vermelho da Receita Federal, só conhecido depois do registro da DI. Falta chegar no front-end mockado. |
 | `numerario` | `Numerario` \| undefined | não | Financeiro | ver seção própria abaixo — 1:1 opcional |
 | `numerarioEnviadoEm` | string (data) | não | Financeiro | "Data de emissão" |
 | `numerarioPagoEm` | string (data) | não | Financeiro | "Data de pagamento" |
@@ -167,7 +168,7 @@ entidade com identidade própria para comportar quantidade e edição in-place.
 |---|---|---|
 | `id` | string (uuid) | gerado no front (`crypto.randomUUID()`) — no banco vira `gen_random_uuid()` |
 | `nome` | string | texto livre, pode estar vazio enquanto a linha acabou de ser criada |
-| `quantidade` | number | sem unidade de medida associada (kg, peças, m³) — **decisão em aberto** |
+| `quantidade` | number | sem unidade de medida associada no front-end mockado; `processo_produtos.unidade_medida` já existe no schema (2026-09-27, enum `kg`/`unidade`/`caixa`/`tonelada`/`litro`/`m3`) — falta chegar aqui |
 
 A UI segue o mesmo padrão dos tributos do numerário: o botão "Adicionar"
 insere uma linha em branco (`{ nome: '', quantidade: 1 }`) que é editada
