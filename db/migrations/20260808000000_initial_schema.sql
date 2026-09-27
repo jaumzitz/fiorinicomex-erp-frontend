@@ -106,12 +106,16 @@ create trigger empresa_config_set_atualizado_em
 create unique index empresa_config_singleton_idx on empresa_config((true));
 
 -- ============================================================
--- Usuários — perfil de app associado ao auth.users do Supabase
--- (senha/login ficam inteiramente a cargo do Supabase Auth)
+-- Usuários — perfil de app.
+-- Auth/login (2026-09-27): provedor ainda não decidido (hospedagem
+-- migrou de Supabase para AWS — RDS + S3). `id` não referencia mais
+-- auth.users; ao decidir o mecanismo de autenticação (Cognito, custom,
+-- etc.), reavaliar se `usuarios.id` deve virar FK para a tabela/serviço
+-- de identidade correspondente.
 -- ============================================================
 
 create table usuarios (
-  id uuid primary key references auth.users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
   nome text not null,
   email text not null,
   cargo text,
@@ -322,8 +326,8 @@ create table anexos (
   tamanho_bytes bigint not null,
   enviado_em timestamptz not null default now(),
   visivel_no_portal boolean not null default false,
-  -- caminho no bucket do Supabase Storage (substitui a object URL local
-  -- usada no front-end mockado)
+  -- key do objeto no bucket S3 (substitui a object URL local usada no
+  -- front-end mockado)
   storage_path text
 );
 

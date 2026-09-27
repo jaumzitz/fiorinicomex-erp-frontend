@@ -14,8 +14,9 @@ Carregamento → Encerramento`.
 Context inicializado a partir de `src/data/mock-data.ts`; não existe back-end,
 banco nem autenticação, e um reload descarta as alterações da sessão.
 
-A Fase 2 (Supabase: Postgres + Auth + Storage) é o próximo passo e já tem
-documentação preparatória em [`docs/`](docs/).
+A Fase 2 (arquitetura AWS decidida: Aurora Serverless v2 + Lambda/API Gateway
++ S3 + Cognito + Amplify Hosting — ver [`docs/05-implantacao-aws.md`](docs/05-implantacao-aws.md))
+é o próximo passo e já tem documentação preparatória em [`docs/`](docs/).
 
 ## Rodando
 
@@ -46,6 +47,7 @@ Leia nesta ordem se for a primeira vez no projeto:
 | [`docs/02-frontend.md`](docs/02-frontend.md) | Arquitetura do front-end, rotas, padrões de UI, lacunas |
 | [`docs/03-modelo-dominio.md`](docs/03-modelo-dominio.md) | Entidades e campos (espelha `src/types/domain.ts`) |
 | [`docs/04-schema-banco.md`](docs/04-schema-banco.md) | Schema relacional proposto + diagrama ER |
+| [`docs/05-implantacao-aws.md`](docs/05-implantacao-aws.md) | Arquitetura AWS: compute, auth, storage, hosting, IaC |
 | [`fiorini-comex-contexto.md`](fiorini-comex-contexto.md) | Requisitos originais do cliente, com itens em aberto |
 
 Para agentes de IA: [`CLAUDE.md`](CLAUDE.md) resume as convenções e as

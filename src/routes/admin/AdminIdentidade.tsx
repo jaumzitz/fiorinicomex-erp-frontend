@@ -40,7 +40,7 @@ export default function AdminIdentidade() {
               />
               <p className="text-muted-foreground text-xs">
                 Upload local por enquanto — o armazenamento real das imagens entra
-                quando o back-end (Supabase Storage) for integrado.
+                quando o back-end (S3) for integrado.
               </p>
             </div>
           </CardContent>

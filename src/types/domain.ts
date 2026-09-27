@@ -146,7 +146,7 @@ export type NumerarioStatus = (typeof NUMERARIO_STATUSES)[number]
 
 export const NUMERARIO_STATUS_LABELS: Record<NumerarioStatus, string> = {
   nao_liberado: 'Em digitação',
-  liberado: 'Liberado',
+  liberado: 'Aguardando pagamento',
   pago: 'Pago',
   cancelado: 'Cancelado',
 }

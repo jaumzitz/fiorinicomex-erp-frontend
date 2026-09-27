@@ -11,8 +11,10 @@ Importação)**.
 
 **Fase 1: front-end sobre dados mockados.** Não existe back-end, banco nem
 autenticação. Todo o estado vive em React Context inicializado por
-`src/data/mock-data.ts`, e um reload descarta as alterações. A Fase 2
-(Supabase) ainda não começou.
+`src/data/mock-data.ts`, e um reload descarta as alterações. A Fase 2 ainda
+não começou — arquitetura de implantação decidida em 2026-09-27 (AWS: Aurora
+Serverless v2 + Lambda/API Gateway + S3 + Cognito, era Supabase até então),
+ver `docs/05-implantacao-aws.md`. Nada disso está provisionado ainda.
 
 ## Comandos
 
@@ -34,7 +36,8 @@ mexer em modelo de dados ou criar telas:
 - `docs/01-dominio-negocio.md` — glossário (PI, DI, DUIMP, numerário, LPCO...) e fluxos
 - `docs/02-frontend.md` — arquitetura, rotas, padrões de UI, lacunas conhecidas
 - `docs/03-modelo-dominio.md` — entidades e campos, espelhando `src/types/domain.ts`
-- `docs/04-schema-banco.md` — schema Postgres proposto (+ `supabase/migrations/`)
+- `docs/04-schema-banco.md` — schema Postgres proposto (+ `db/migrations/`)
+- `docs/05-implantacao-aws.md` — arquitetura AWS (compute, auth, storage, IaC)
 - `fiorini-comex-contexto.md` — requisitos originais do cliente
 
 **Mantenha esses documentos em dia.** Mudou o modelo de domínio? Atualize
@@ -105,7 +108,7 @@ mexer em modelo de dados ou criar telas:
   `ProcessosTable.tsx`/`ProcessosCards.tsx`).
 - **O item selecionado de uma lista pode/deve virar URL, não `useState`**,
   quando precisar ser linkável (ctrl+clique, "abrir em nova aba", menu de
-  contexto). Ver `?pi=<id>` em `ProcessosImportacao.tsx`
+  contexto). Ver `?pi=<número>` em `ProcessosImportacao.tsx`
   (`useSearchParams`) — mesma rota o tempo todo, sem remount.
 
 ## Fora de escopo por enquanto
