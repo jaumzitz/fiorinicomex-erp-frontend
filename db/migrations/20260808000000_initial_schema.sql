@@ -77,6 +77,26 @@ create table contatos_empresa (
 create index contatos_empresa_empresa_id_idx on contatos_empresa(empresa_id);
 
 -- ============================================================
+-- Portal do cliente — contas de acesso (2026-09-27, arquitetura AWS).
+-- Mapeia uma identidade do Cognito User Pool "portal do cliente" (e-mail +
+-- senha) para uma Empresa. N:1: uma empresa pode ter várias contas (pessoas
+-- diferentes da mesma empresa). O acesso por token/link a um PI específico
+-- (o outro mecanismo do portal) não usa conta nenhuma, então não aparece
+-- aqui — ver docs/05-implantacao-aws.md.
+-- ============================================================
+
+create table portal_usuarios (
+  id uuid primary key default gen_random_uuid(),
+  empresa_id uuid not null references empresas(id) on delete cascade,
+  cognito_sub text not null unique,
+  email text not null,
+  ativo boolean not null default true,
+  criado_em timestamptz not null default now()
+);
+
+create index portal_usuarios_empresa_id_idx on portal_usuarios(empresa_id);
+
+-- ============================================================
 -- Empresa Config — perfil da própria Fiorini (linha única)
 -- ============================================================
 
