@@ -36,6 +36,30 @@ export const TIPO_CARGA_LABELS: Record<TipoCarga, string> = {
   LCL: 'LCL — Carga consolidada',
 }
 
+/** Nível de fiscalização aplicado pela Receita Federal na análise documental — só é conhecido depois que a DI é registrada. */
+export const CANAIS_PARAMETRIZACAO = ['verde', 'amarelo', 'vermelho'] as const
+
+export type CanalParametrizacao = (typeof CANAIS_PARAMETRIZACAO)[number]
+
+export const CANAL_PARAMETRIZACAO_LABELS: Record<CanalParametrizacao, string> = {
+  verde: 'Verde',
+  amarelo: 'Amarelo',
+  vermelho: 'Vermelho',
+}
+
+export const UNIDADES_MEDIDA = ['unidade', 'kg', 'caixa', 'tonelada', 'litro', 'm3'] as const
+
+export type UnidadeMedida = (typeof UNIDADES_MEDIDA)[number]
+
+export const UNIDADE_MEDIDA_LABELS: Record<UnidadeMedida, string> = {
+  unidade: 'Unidade',
+  kg: 'Kg',
+  caixa: 'Caixa',
+  tonelada: 'Tonelada',
+  litro: 'Litro',
+  m3: 'm³',
+}
+
 export const TIPOS_RELACIONAMENTO_EMPRESA = [
   'cliente',
   'exportador',
@@ -124,6 +148,7 @@ export interface Produto {
   id: string
   nome: string
   quantidade: number
+  unidadeMedida: UnidadeMedida
 }
 
 export interface TributoCatalogo {
@@ -220,6 +245,8 @@ export interface ProcessoImportacao {
   dataCi?: string
   dataSiscargo?: string
   dataIcms?: string
+  /** Só é conhecido depois que a DI é registrada. */
+  canalParametrizacao?: CanalParametrizacao
   dataEncerramento?: string
   produtos: Produto[]
   criadoEm: string

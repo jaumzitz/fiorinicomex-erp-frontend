@@ -13,6 +13,8 @@ banco ou uma API sem precisar ler TypeScript.
 | `TipoCarga` | `FCL`, `LCL` | `ProcessoImportacao.tipoCarga` (só relevante quando `modal === 'maritimo'`) |
 | `TipoRelacionamentoEmpresa` | `cliente`, `exportador`, `fornecedor_frete`, `agente_carga`, `transportador`, `recinto` | `Empresa.tiposRelacionamento` (array — uma empresa pode ter vários papéis) |
 | `NumerarioStatus` | `nao_liberado`, `liberado`, `pago`, `cancelado` | `Numerario.status` |
+| `CanalParametrizacao` | `verde`, `amarelo`, `vermelho` | `ProcessoImportacao.canalParametrizacao` (nullable — só conhecido após o registro da DI) |
+| `UnidadeMedida` | `unidade`, `kg`, `caixa`, `tonelada`, `litro`, `m3` | `Produto.unidadeMedida` (default `unidade`) |
 
 ## `Empresa`
 
@@ -103,11 +105,12 @@ necessidade futura, não confirmada. Ligar as duas coisas (autenticação real
 
 ## `ProcessoImportacao` (o PI — entidade central)
 
-O drawer de detalhe do PI tem seis abas: **Processo** (com as seções
-colapsáveis *Informações primárias*, *Transporte*, *Frete internacional* e
-*Produtos*), **Desembaraço**, **Financeiro**, **Digitação de DI**
-(placeholder vazio), **Anexos** e **Comentários**. A coluna abaixo indica
-onde cada campo aparece.
+O drawer de detalhe do PI tem sete abas: **Processo** (com as seções
+colapsáveis *Informações primárias* e *Produtos*), **Transporte** (campos de
+transporte + a seção colapsável *Frete internacional* — separada de
+Processo em 2026-09-27, cresceu demais pra ser uma seção só), **Desembaraço**,
+**Financeiro**, **DI** (placeholder vazio), **Anexos** e **Comentários**. A
+coluna abaixo indica onde cada campo aparece.
 
 | Campo | Tipo | Obrigatório | Aba / seção | Observação |
 |---|---|---|---|---|
@@ -115,28 +118,28 @@ onde cada campo aparece.
 | `numero` | string | sim | cabeçalho | `PI-{sequência}`, único |
 | `clienteId` | string (uuid → Empresa) | sim | Processo › Informações primárias | FK — somente leitura no drawer, definido ao criar o PI |
 | `status` | `PiStatus` | sim | cabeçalho | default `aberto` |
-| `modal` | `Modal` | sim | Processo › Transporte | |
-| `fornecedoresCotadosIds` | string[] (uuid → Empresa) | não | Processo › Frete internacional | fornecedores convidados a cotar — N:N |
-| `fornecedorFreteId` | string (uuid → Empresa) | não | Processo › Frete internacional | qual cotação foi aceita, subconjunto de `fornecedoresCotadosIds` |
+| `modal` | `Modal` | sim | Transporte | |
+| `fornecedoresCotadosIds` | string[] (uuid → Empresa) | não | Transporte › Frete internacional | fornecedores convidados a cotar — N:N |
+| `fornecedorFreteId` | string (uuid → Empresa) | não | Transporte › Frete internacional | qual cotação foi aceita, subconjunto de `fornecedoresCotadosIds` |
 | `exportadorId` | string (uuid → Empresa) | não | Processo › Informações primárias | FK — ver nota abaixo |
 | `referenciaCliente` | string | não | Processo › Informações primárias | |
-| `licencaImportacao` | boolean | não | Processo › Transporte | rotulado "LPCO" na UI |
-| `tipoCarga` | `TipoCarga` | não | Processo › Transporte | só quando `modal === 'maritimo'` |
-| `navio` | string | não | Processo › Transporte | só quando `modal === 'maritimo'` |
-| `origem`, `destino` | string | não | Processo › Transporte | |
-| `previsaoEmbarque`, `previsaoChegada` | string (data) | não | Processo › Transporte | |
-| `hblHawb` | string | não | Processo › Transporte | |
-| `conhecimentoEmbarque` | string | não | Processo › Transporte | "CE Mercante", só `maritimo` na prática |
-| `dataLiberacaoMapa` | string (data) | não | Processo › Transporte | |
-| `dataChegada` | string (data) | não | Processo › Transporte | |
-| `dataPresencaCarga` | string (data) | não | Processo › Transporte | |
+| `licencaImportacao` | boolean | não | Transporte | rotulado "LPCO" na UI |
+| `tipoCarga` | `TipoCarga` | não | Transporte | só quando `modal === 'maritimo'` |
+| `navio` | string | não | Transporte | só quando `modal === 'maritimo'` |
+| `origem`, `destino` | string | não | Transporte | |
+| `previsaoEmbarque`, `previsaoChegada` | string (data) | não | Transporte | |
+| `hblHawb` | string | não | Transporte | |
+| `conhecimentoEmbarque` | string | não | Transporte | "CE Mercante", só `maritimo` na prática |
+| `dataLiberacaoMapa` | string (data) | não | Transporte | |
+| `dataChegada` | string (data) | não | Transporte | |
+| `dataPresencaCarga` | string (data) | não | Transporte | |
 | `produtos` | `Produto[]` | sim (pode ser vazio) | Processo › Produtos | 1:N — ver seção própria abaixo |
 | `numeroDi` | string | não | Desembaraço | |
 | `dataCi` | string (data) | não | Desembaraço | semântica confirmada 2026-09-27, ver domínio de negócio |
 | `dataSiscargo` | string (data) | não | Desembaraço | idem |
 | `dataIcms` | string (data) | não | Desembaraço | "Pagamento ICMS" |
+| `canalParametrizacao` | `CanalParametrizacao` (`'verde'` \| `'amarelo'` \| `'vermelho'`) | não | Desembaraço | implementado 2026-09-27 — nullable, só conhecido depois do registro da DI. Espelha `processos.canal_parametrizacao` no schema |
 | `dataEncerramento` | string (data) | não | Desembaraço | |
-| — *(ainda não existe em `domain.ts`)* | — | — | Desembaraço | `canal_parametrizacao` já existe no schema (2026-09-27, ver [04-schema-banco.md](04-schema-banco.md)) — verde/amarelo/vermelho da Receita Federal, só conhecido depois do registro da DI. Falta chegar no front-end mockado. |
 | `numerario` | `Numerario` \| undefined | não | Financeiro | ver seção própria abaixo — 1:1 opcional |
 | `numerarioEnviadoEm` | string (data) | não | Financeiro | "Data de emissão" |
 | `numerarioPagoEm` | string (data) | não | Financeiro | "Data de pagamento" |
@@ -168,13 +171,15 @@ entidade com identidade própria para comportar quantidade e edição in-place.
 |---|---|---|
 | `id` | string (uuid) | gerado no front (`crypto.randomUUID()`) — no banco vira `gen_random_uuid()` |
 | `nome` | string | texto livre, pode estar vazio enquanto a linha acabou de ser criada |
-| `quantidade` | number | sem unidade de medida associada no front-end mockado; `processo_produtos.unidade_medida` já existe no schema (2026-09-27, enum `kg`/`unidade`/`caixa`/`tonelada`/`litro`/`m3`) — falta chegar aqui |
+| `quantidade` | number | número solto, a unidade é o campo separado abaixo |
+| `unidadeMedida` | `UnidadeMedida` (`'kg'` \| `'unidade'` \| `'caixa'` \| `'tonelada'` \| `'litro'` \| `'m3'`) | implementado 2026-09-27, default `'unidade'`. Espelha `processo_produtos.unidade_medida` no schema |
 
 A UI segue o mesmo padrão dos tributos do numerário: o botão "Adicionar"
-insere uma linha em branco (`{ nome: '', quantidade: 1 }`) que é editada
-in-place, e o botão de remover exclui de verdade (sem soft delete). A prévia
-do numerário (`NumerarioPreview.tsx`) e a coluna "Produtos" da tabela
-concatenam apenas os `nome`s.
+insere uma linha em branco (`{ nome: '', quantidade: 1, unidadeMedida:
+'unidade' }`) que é editada in-place, e o botão de remover exclui de
+verdade (sem soft delete). A prévia do numerário (`NumerarioPreview.tsx`) e
+a coluna "Produtos" da tabela concatenam apenas os `nome`s (sem quantidade
+nem unidade).
 
 ## `Numerario` (embutido em `ProcessoImportacao.numerario`, opcional)
 

@@ -122,13 +122,13 @@ já o usam.
 
 ## Produtos do PI
 
-Cada PI lista as mercadorias importadas como **nome + quantidade** (lista
-livre, editável in-place na seção Produtos do drawer). A quantidade no
-front-end mockado (Fase 1) ainda não tem unidade de medida associada; no
-schema (2026-09-27) já existe `processo_produtos.unidade_medida`, um enum
-fixo (`kg`, `unidade`, `caixa`, `tonelada`, `litro`, `m3`) — falta só chegar
-no front-end quando a Fase 2 substituir os dados mockados. O nome dos
-produtos é o que aparece no campo "Produto" do numerário.
+Cada PI lista as mercadorias importadas como **nome + quantidade + unidade
+de medida** (lista livre, editável in-place na seção Produtos do drawer).
+Unidade de medida é um enum fixo (`kg`, `unidade`, `caixa`, `tonelada`,
+`litro`, `m3`, default `unidade`) — implementado no front-end 2026-09-27,
+espelhando `processo_produtos.unidade_medida` no schema. O nome dos
+produtos é o que aparece no campo "Produto" do numerário (a unidade não
+entra na prévia ainda).
 
 ## Comentários e anexos
 
@@ -155,9 +155,12 @@ confirmação; além disso podem ser renomeados, abertos e baixados.
 - Significado exato de dois campos vindos da planilha atual: **CI** e
   **SISCARGO** (hipóteses registradas em `fiorini-comex-contexto.md` §2.1,
   já modelados no sistema como `dataCi`/`dataSiscargo` sob essa hipótese).
-- Unidade de medida da quantidade dos produtos.
-- Onde entra o **canal de parametrização** (verde/amarelo/vermelho): ainda
-  não existe campo para ele no PI.
+- ~~Unidade de medida da quantidade dos produtos~~ → implementado no
+  front-end 2026-09-27 (`Produto.unidadeMedida`).
+- ~~Onde entra o **canal de parametrização** (verde/amarelo/vermelho)~~ →
+  implementado no front-end 2026-09-27, aba Desembaraço
+  (`ProcessoImportacao.canalParametrizacao`), nullable até a DI ser
+  registrada.
 - Regras de campo-obrigatório-por-status.
 - Geração do Numerário como PDF (hoje só existe uma prévia em HTML dentro do
   drawer, `NumerarioPreview.tsx`).

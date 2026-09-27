@@ -63,12 +63,17 @@ import { useTributosCatalogo } from '@/store/TributosCatalogoContext'
 import { usePreferencias } from '@/store/PreferenciasContext'
 import { formatarNumeroPi } from '@/lib/numero-pi'
 import {
+  CANAIS_PARAMETRIZACAO,
+  CANAL_PARAMETRIZACAO_LABELS,
   MODAL_LABELS,
   NUMERARIO_STATUS_LABELS,
   PI_STATUSES,
   PI_STATUS_LABELS,
   TIPO_CARGA_LABELS,
+  UNIDADES_MEDIDA,
+  UNIDADE_MEDIDA_LABELS,
   type Anexo,
+  type CanalParametrizacao,
   type ItemTributo,
   type Modal,
   type Numerario,
@@ -76,6 +81,7 @@ import {
   type PiStatus,
   type ProcessoImportacao,
   type TipoCarga,
+  type UnidadeMedida,
 } from '@/types/domain'
 
 function ehImagem(nomeArquivo: string) {
@@ -347,6 +353,12 @@ const NUMERARIO_STATUS_DOT: Record<NumerarioStatus, string> = {
   liberado: 'bg-blue-500',
   pago: 'bg-emerald-500',
   cancelado: 'bg-destructive',
+}
+
+const CANAL_PARAMETRIZACAO_DOT: Record<CanalParametrizacao, string> = {
+  verde: 'bg-emerald-500',
+  amarelo: 'bg-amber-500',
+  vermelho: 'bg-destructive',
 }
 
 const SECOES_PADRAO: Record<string, boolean> = {
@@ -1022,14 +1034,14 @@ export function ProcessoDrawer({
             ) : (
               <ul className="flex flex-col gap-2">
                 {processo.produtos.map((produto) => (
-                  <li key={produto.id} className="flex items-center gap-2">
+                  <li key={produto.id} className="flex flex-wrap items-center gap-2">
                     <Input
                       placeholder="Nome do produto"
                       value={produto.nome}
                       onChange={(e) =>
                         atualizarProduto(processo.id, produto.id, { nome: e.target.value })
                       }
-                      className="h-8 flex-1"
+                      className="h-8 min-w-32 flex-1"
                     />
                     <Input
                       type="number"
@@ -1041,8 +1053,27 @@ export function ProcessoDrawer({
                           quantidade: Number(e.target.value) || 0,
                         })
                       }
-                      className="h-8 w-24 shrink-0"
+                      className="h-8 w-20 shrink-0"
                     />
+                    <Select
+                      value={produto.unidadeMedida}
+                      onValueChange={(v) =>
+                        atualizarProduto(processo.id, produto.id, {
+                          unidadeMedida: v as UnidadeMedida,
+                        })
+                      }
+                    >
+                      <SelectTrigger size="sm" className="h-8 w-28 shrink-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {UNIDADES_MEDIDA.map((unidade) => (
+                          <SelectItem key={unidade} value={unidade}>
+                            {UNIDADE_MEDIDA_LABELS[unidade]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button
                       type="button"
                       size="icon"
@@ -1060,7 +1091,9 @@ export function ProcessoDrawer({
               size="sm"
               variant="outline"
               className="w-fit"
-              onClick={() => adicionarProduto(processo.id, { nome: '', quantidade: 1 })}
+              onClick={() =>
+                adicionarProduto(processo.id, { nome: '', quantidade: 1, unidadeMedida: 'unidade' })
+              }
             >
               <Plus className="size-4" />
               Adicionar
@@ -1305,6 +1338,37 @@ export function ProcessoDrawer({
               value={processo.dataIcms ?? ''}
               onChange={(v) => patch('dataIcms', v)}
             />
+            <div className="flex flex-col gap-1">
+              <Label className="text-muted-foreground text-xs font-normal">
+                Canal de parametrização
+              </Label>
+              <Select
+                value={processo.canalParametrizacao ?? 'nenhum'}
+                onValueChange={(v) =>
+                  atualizarProcesso(processo.id, {
+                    canalParametrizacao:
+                      v === 'nenhum' ? undefined : (v as CanalParametrizacao),
+                  })
+                }
+              >
+                <SelectTrigger size="sm" className="h-8 w-full">
+                  <SelectValue placeholder="Ainda não conhecido" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Ainda não conhecido</SelectItem>
+                  {CANAIS_PARAMETRIZACAO.map((canal) => (
+                    <SelectItem key={canal} value={canal}>
+                      <span className="inline-flex items-center gap-1.5">
+                        <span
+                          className={cn('size-2 rounded-full', CANAL_PARAMETRIZACAO_DOT[canal])}
+                        />
+                        {CANAL_PARAMETRIZACAO_LABELS[canal]}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <EditableField
               label="Data de encerramento"
               type="date"
