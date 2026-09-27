@@ -1330,7 +1330,7 @@ export function ProcessoDrawer({
         {abaAtiva === 'financeiro' && processo.numerario && (
           <>
           <div className="flex flex-col gap-4 px-5 py-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
               <div className="flex flex-col gap-1">
                 <span className="text-sm font-medium">Numerário</span>
                 <span className="inline-flex w-fit items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium">
@@ -1344,79 +1344,78 @@ export function ProcessoDrawer({
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Secundárias — corretivas/meta, sem relação direta com o fluxo de trabalho. Só ícone. */}
-                <div className="flex items-center gap-1">
-                  {numerarioEmDigitacao && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive size-8"
-                      title="Excluir numerário"
-                      onClick={() => setConfirmarExcluirAberto(true)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  )}
-                  {numerarioAguardandoPagamento && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="size-8"
-                      title="Desfazer liberação"
-                      onClick={() => setConfirmarDesfazerAberto(true)}
-                    >
-                      <Undo className="size-4" />
-                    </Button>
-                  )}
+              {/* Um único grupo flex-wrap: ícones secundários (corretivos/meta,
+                  sem relação com o fluxo) primeiro, depois as ações do fluxo de
+                  trabalho (digitar → liberar → enviar → pagar). Fica tudo num
+                  nível só de flex-wrap — aninhar flex-wrap dentro de flex-wrap
+                  quebrava no mobile, porque o grupo interno não encolhia. */}
+              <div className="flex flex-wrap items-center gap-2">
+                {numerarioEmDigitacao && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive size-8"
+                    title="Excluir numerário"
+                    onClick={() => setConfirmarExcluirAberto(true)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                )}
+                {numerarioAguardandoPagamento && (
                   <Button
                     type="button"
                     size="icon"
                     variant="ghost"
                     className="size-8"
-                    title="Logs de auditoria"
-                    onClick={() => setAuditoriaAberto(true)}
+                    title="Desfazer liberação"
+                    onClick={() => setConfirmarDesfazerAberto(true)}
                   >
-                    <History className="size-4" />
+                    <Undo className="size-4" />
                   </Button>
-                </div>
+                )}
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="size-8"
+                  title="Logs de auditoria"
+                  onClick={() => setAuditoriaAberto(true)}
+                >
+                  <History className="size-4" />
+                </Button>
 
                 {(numerarioEmDigitacao || numerarioVisivelParaCliente) && (
-                  <div className="bg-border h-5 w-px" />
+                  <div className="bg-border hidden h-5 w-px sm:block" />
                 )}
 
-                {/* Fluxo de trabalho — digitar → liberar → enviar → pagar. */}
-                <div className="flex items-center gap-2">
-                  {numerarioVisivelParaCliente && (
-                    <Button size="sm" variant="outline" onClick={abrirEmailNumerario}>
-                      <Mail className="size-4" />
-                      Enviar por e-mail
-                    </Button>
-                  )}
-                  {numerarioVisivelParaCliente && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setNumerarioAberto(true)}
-                    >
-                      <FileText className="size-4" />
-                      Ver Numerário
-                    </Button>
-                  )}
-                  {numerarioEmDigitacao && (
-                    <Button size="sm" onClick={liberarNumerario}>
-                      Liberar numerário
-                    </Button>
-                  )}
-                  {numerarioAguardandoPagamento && (
-                    <Button size="sm" onClick={() => setConfirmarPagamentoAberto(true)}>
-                      <CircleDollarSign className="size-4" />
-                      Registrar pagamento
-                    </Button>
-                  )}
-                </div>
+                {numerarioVisivelParaCliente && (
+                  <Button size="sm" variant="outline" onClick={abrirEmailNumerario}>
+                    <Mail className="size-4" />
+                    Enviar por e-mail
+                  </Button>
+                )}
+                {numerarioVisivelParaCliente && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setNumerarioAberto(true)}
+                  >
+                    <FileText className="size-4" />
+                    Ver Numerário
+                  </Button>
+                )}
+                {numerarioEmDigitacao && (
+                  <Button size="sm" onClick={liberarNumerario}>
+                    Liberar numerário
+                  </Button>
+                )}
+                {numerarioAguardandoPagamento && (
+                  <Button size="sm" onClick={() => setConfirmarPagamentoAberto(true)}>
+                    <CircleDollarSign className="size-4" />
+                    Registrar pagamento
+                  </Button>
+                )}
               </div>
             </div>
 
