@@ -12,25 +12,27 @@ const ITENS_TAB_BAR = [
 
 export function MobileTabBar() {
   return (
-    <nav className="bg-sidebar border-sidebar-border flex h-14 shrink-0 border-t lg:hidden">
-      {ITENS_TAB_BAR.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          className={({ isActive }) =>
-            cn(
-              'flex flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium transition-colors',
-              isActive
-                ? 'text-foreground'
-                : 'text-muted-foreground hover:text-foreground',
-            )
-          }
-        >
-          <item.icon className="size-5" />
-          {item.label}
-        </NavLink>
-      ))}
+    <nav className="bg-sidebar border-sidebar-border shrink-0 border-t pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <div className="flex h-16">
+        {ITENS_TAB_BAR.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) =>
+              cn(
+                'flex flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors',
+                isActive
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              )
+            }
+          >
+            <item.icon className="size-6" />
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
     </nav>
   )
 }
